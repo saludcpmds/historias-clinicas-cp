@@ -43,7 +43,7 @@
         </div>
     </div>
 
-    <!-- 2. DASHBOARD / PANEL PRINCIPAL (ESTILO LOVABLE) -->
+    <!-- 2. DASHBOARD / PANEL PRINCIPAL -->
     <div id="dashboardSection" class="hidden min-h-screen pb-12">
         <!-- Header Institucional De Punta a Punta -->
         <header class="w-full bg-[#A4C2E8] shadow-sm mb-6 font-['Barlow',sans-serif] sticky top-0 z-30">
@@ -140,6 +140,30 @@
                         + Nueva ficha
                     </button>
                 </div>
+
+                <!-- Chips Contadores por Estado (Paso a paso) -->
+                <div class="mt-4 flex flex-wrap gap-2 text-xs">
+                    <!-- En Tratamiento -->
+                    <div class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 shadow-sm">
+                        <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                        <span id="cantTratamiento" class="font-bold text-slate-800">0</span>
+                        <span class="text-slate-600">en tratamiento</span>
+                    </div>
+
+                    <!-- En Seguimiento -->
+                    <div class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 shadow-sm">
+                        <span class="h-2 w-2 rounded-full bg-slate-400"></span>
+                        <span id="cantSeguimiento" class="font-bold text-slate-800">0</span>
+                        <span class="text-slate-600">en seguimiento</span>
+                    </div>
+
+                    <!-- Egreso -->
+                    <div class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 shadow-sm">
+                        <span class="h-2 w-2 rounded-full bg-amber-500"></span>
+                        <span id="cantEgreso" class="font-bold text-slate-800">0</span>
+                        <span class="text-slate-600">egreso</span>
+                    </div>
+                </div>
             </section>
 
             <!-- Tabla de Pacientes Recientes -->
@@ -154,6 +178,7 @@
                             <tr>
                                 <th class="px-6 py-3 font-semibold">DNI</th>
                                 <th class="px-6 py-3 font-semibold">Paciente</th>
+                                <th class="px-6 py-3 font-semibold">Estado</th>
                                 <th class="px-6 py-3 font-semibold">Localidad</th>
                                 <th class="px-6 py-3 font-semibold">Sustancia</th>
                                 <th class="px-6 py-3 font-semibold">Fecha Registro</th>
@@ -161,7 +186,7 @@
                         </thead>
                         <tbody id="tablaPacientesBody" class="divide-y divide-slate-100 text-slate-700">
                             <tr>
-                                <td colSpan="5" class="px-6 py-8 text-center text-xs text-slate-400">
+                                <td colSpan="6" class="px-6 py-8 text-center text-xs text-slate-400">
                                     Cargando registros recientes...
                                 </td>
                             </tr>
@@ -191,7 +216,7 @@
                 <div class="bg-sky-50/50 p-5 rounded-lg border border-sky-200 space-y-4">
                     <h4 class="text-sm font-bold text-sky-800 uppercase tracking-wide border-b border-sky-200 pb-2">1. Identificación y Sociodemografía</h4>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">DNI *</label>
                             <input type="text" id="pacienteDni" required placeholder="Número" class="mt-1 block w-full px-3 py-2 border rounded-md">
@@ -203,6 +228,14 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Apellido *</label>
                             <input type="text" id="pacienteApellido" required placeholder="Apellido completo" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Estado del Paciente *</label>
+                            <select id="estadoPaciente" required class="mt-1 block w-full px-3 py-2 border rounded-md bg-white">
+                                <option value="en_tratamiento" selected>En tratamiento</option>
+                                <option value="en_seguimiento">En seguimiento</option>
+                                <option value="egreso">Egreso</option>
+                            </select>
                         </div>
                     </div>
 
