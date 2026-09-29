@@ -8,6 +8,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Fuente Oficial Barlow -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,800&display=swap" rel="stylesheet">
     <style>
         .frost {
             backdrop-filter: blur(12px);
@@ -41,18 +45,65 @@
 
     <!-- 2. DASHBOARD / PANEL PRINCIPAL (ESTILO LOVABLE) -->
     <div id="dashboardSection" class="hidden min-h-screen pb-12">
-        <!-- Header con información de usuario y botón de cerrar sesión -->
-        <header class="sticky top-0 z-30 border-b border-slate-200 frost mb-6">
-            <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
-                <div class="flex items-center">
-                    <img src="Imagen7.png" alt="Ministerio de Desarrollo Social - Corrientes" class="h-12 w-auto object-contain">
+        <!-- Header Institucional De Punta a Punta -->
+        <header class="w-full bg-[#A4C2E8] shadow-sm mb-6 font-['Barlow',sans-serif] sticky top-0 z-30">
+            <div class="w-full flex items-center justify-between pr-4 sm:pr-6 h-16 sm:h-20 overflow-hidden">
+                
+                <!-- Secuencia Banner: Rojo -> Amarillo -> Escudo -> Textos Institucionales -->
+                <div class="flex items-center h-full gap-3 sm:gap-5">
+                    
+                    <!-- 1. Banner Rojo -->
+                    <img src="baner-rojo.jpg" alt="Bloque Rojo" class="h-full w-auto object-cover flex-shrink-0">
+
+                    <!-- 2. Banner Amarillo -->
+                    <img src="banner-amarillo.png" alt="Bloque Amarillo" class="h-full w-auto object-cover flex-shrink-0 -ml-3 sm:-ml-5">
+
+                    <!-- 3. Escudo de Corrientes -->
+                    <img src="escudo-corrientes.png" alt="Escudo Corrientes" class="h-12 sm:h-16 w-auto object-contain flex-shrink-0 ml-1 sm:ml-2">
+
+                    <!-- 4. Texto: Ministerio de Desarrollo Social CORRIENTES -->
+                    <div class="flex flex-col justify-center leading-none text-slate-900">
+                        <span class="text-xs sm:text-base font-bold tracking-tight">
+                            Ministerio de
+                        </span>
+                        <span class="text-xs sm:text-base font-bold tracking-tight">
+                            Desarrollo Social
+                        </span>
+                        <span class="text-sm sm:text-xl font-black uppercase tracking-wider mt-0.5">
+                            CORRIENTES
+                        </span>
+                    </div>
+
+                    <!-- Separador sutil -->
+                    <div class="hidden md:block h-10 w-px bg-slate-400/40 mx-1"></div>
+
+                    <!-- 5. Texto: Dirección de Asistencia y Tratamiento -->
+                    <div class="hidden md:flex flex-col justify-center leading-tight text-slate-800">
+                        <span class="text-xs sm:text-sm font-medium">Dirección de</span>
+                        <span class="text-xs sm:text-sm font-medium">Asistencia y</span>
+                        <span class="text-xs sm:text-sm font-medium">Tratamiento</span>
+                    </div>
+
+                    <!-- 6. Texto: Siempre cerca -->
+                    <div class="hidden lg:flex flex-col justify-center leading-none text-slate-900 ml-3">
+                        <span class="text-base sm:text-xl font-extrabold italic tracking-tighter">
+                            Siempre
+                        </span>
+                        <span class="text-base sm:text-xl font-extrabold italic tracking-tighter">
+                            cerca
+                        </span>
+                    </div>
+
                 </div>
-                <div class="flex items-center gap-4">
-                    <span id="userEmail" class="text-xs font-medium text-slate-600 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200"></span>
-                    <button id="logoutBtn" type="button" class="text-xs bg-red-500 text-white px-3 py-1.5 rounded-lg hover:bg-red-600 transition font-medium">
+
+                <!-- Usuario y Cierre de Sesión -->
+                <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    <span id="userEmail" class="text-xs sm:text-sm font-medium text-slate-800 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-white/50"></span>
+                    <button id="logoutBtn" type="button" class="text-xs sm:text-sm bg-red-500 hover:bg-red-600 text-white font-medium px-3 sm:px-4 py-1.5 rounded-lg shadow-sm transition-colors duration-150">
                         Salir
                     </button>
                 </div>
+
             </div>
         </header>
 
