@@ -67,7 +67,6 @@ clinicalForm.addEventListener('submit', async (e) => {
         localidad: document.getElementById('localidad').value,
         barrio_residencia: document.getElementById('barrioResidencia').value,
         nivel_educativo: document.getElementById('nivelEducativo').value,
-        clima_educativo: document.getElementById('climaEducativo').value,
         situacion_laboral: document.getElementById('situacionLaboral').value,
         tipo_vivienda: document.getElementById('tipoVivienda').value,
         situacion_habitacional: document.getElementById('situacionHabitacional').value,
