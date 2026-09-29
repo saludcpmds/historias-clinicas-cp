@@ -114,9 +114,11 @@ function mostrarDashboard(user) {
     formularioSection.classList.add('hidden');
     dashboardSection.classList.remove('hidden');
     
-    // Muestra Nombre y Apellido si existen, de lo contrario el email
+    // Muestra Nombre y Apellido directamente (el texto "USUARIO:" ya viene fijado desde index.html)
     const nombreUsuario = obtenerNombreProfesional(user);
-    userEmailText.textContent = `${nombreUsuario}`;
+    if (userEmailText) {
+        userEmailText.textContent = nombreUsuario;
+    }
     
     limpiarVistaInicial();
     cargarMetricasGlobales(); // Cargar siempre el conteo global total al entrar al dashboard
