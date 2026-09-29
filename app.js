@@ -40,7 +40,7 @@ logoutBtn.addEventListener('click', async () => {
     location.reload();
 });
 
-// GUARDAR HISTORIA CLÍNICA CON TODAS LAS VARIABLES EPIDEMIOLÓGICAS
+// GUARDAR HISTORIA CLÍNICA COMPLETA
 clinicalForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     clinicalStatus.classList.add('hidden');
@@ -55,35 +55,46 @@ clinicalForm.addEventListener('submit', async (e) => {
 
     const payload = {
         medico_id: user.id,
-        // Bloque 1: Identificación y Sociodemografía
+
+        // BLOQUE 1: IDENTIFICACIÓN Y SOCIODEMOGRAFÍA
         paciente_dni: document.getElementById('pacienteDni').value,
         paciente_nombre: document.getElementById('pacienteNombre').value,
         paciente_apellido: document.getElementById('pacienteApellido').value,
         sexo: document.getElementById('sexo').value,
+        fecha_nacimiento: document.getElementById('fechaNacimiento').value || null,
         edad: document.getElementById('edad').value ? parseInt(document.getElementById('edad').value) : null,
-        municipio_barrio: document.getElementById('municipioBarrio').value,
+        grupo_etario: document.getElementById('grupoEtario').value,
+        localidad: document.getElementById('localidad').value,
+        barrio_residencia: document.getElementById('barrioResidencia').value,
         nivel_educativo: document.getElementById('nivelEducativo').value,
+        clima_educativo: document.getElementById('climaEducativo').value,
         situacion_laboral: document.getElementById('situacionLaboral').value,
-        vivienda_situacion: document.getElementById('viviendaSituacion').value,
+        tipo_vivienda: document.getElementById('tipoVivienda').value,
+        situacion_habitacional: document.getElementById('situacionHabitacional').value,
+        habitaciones_dormir: document.getElementById('habitacionesDormir').value ? parseInt(document.getElementById('habitacionesDormir').value) : null,
+        personas_vivienda: document.getElementById('personasVivienda').value ? parseInt(document.getElementById('personasVivienda').value) : null,
+        servicio_agua: document.getElementById('servicioAgua').value,
+        eliminacion_excretas: document.getElementById('eliminacionExcretas').value,
 
-        // Bloque 2: Patrones y Sustancias
-        sustancia_principal: document.getElementById('sustanciaPrincipal').value,
+        // BLOQUE 2: PATRONES DE CONSUMO
+        sustancia_consumida: document.getElementById('sustanciaConsumida').value,
         edad_inicio: document.getElementById('edadInicio').value ? parseInt(document.getElementById('edadInicio').value) : null,
-        frecuencia_consumo: document.getElementById('frecuenciaConsumo').value,
+        frecuencia_uso: document.getElementById('frecuenciaUso').value,
         policonsumo: document.getElementById('policonsumo').value,
 
-        // Bloque 3: Contexto y Cuidado
+        // BLOQUE 3: CONTEXTO Y CUIDADO
         lugar_consumo: document.getElementById('lugarConsumo').value,
         red_acompanamiento: document.getElementById('redAcompanamiento').value,
-        motivos_consumo: document.getElementById('motivosConsumo').value,
-        practicas_cuidado: document.getElementById('practicasCuidado').value,
+        motivos: document.getElementById('motivos').value,
+        pautas_autocuidado: document.getElementById('pautasAutocuidado').value,
 
-        // Bloque 4: Asistencia y Clínica
+        // BLOQUE 4: ASISTENCIA Y OBSERVACIONES
         consultas_previas: document.getElementById('consultasPrevias').value,
-        demanda_guardia: document.getElementById('demandaGuardia').value,
+        atencion_guardia: document.getElementById('atencionGuardia').value,
+        atencion_salud_mental: document.getElementById('atencionSaludMental').value,
+        internaciones: document.getElementById('internaciones').value,
         vinculacion_red: document.getElementById('vinculacionRed').value,
         motivo_consulta: document.getElementById('motivoConsulta').value,
-        diagnostico_cie11: document.getElementById('diagnosticoCie11').value,
         observaciones: document.getElementById('observaciones').value
     };
 
@@ -95,7 +106,7 @@ clinicalForm.addEventListener('submit', async (e) => {
         clinicalStatus.textContent = 'Error al guardar: ' + error.message;
         clinicalStatus.className = 'text-sm mt-3 text-center text-red-500 font-semibold';
     } else {
-        clinicalStatus.textContent = '¡Historia clínica y ficha epidemiológica guardadas con éxito!';
+        clinicalStatus.textContent = '¡Historia clínica guardada con éxito!';
         clinicalStatus.className = 'text-sm mt-3 text-center text-emerald-600 font-bold';
         clinicalForm.reset();
     }
@@ -126,7 +137,7 @@ document.getElementById('btnBuscar').addEventListener('click', async () => {
     }
 
     if (data.length === 0) {
-        resultadoDiv.innerHTML = '<p class="text-sm text-amber-600">No se encontraron registros para ese DNI.</p>';
+        resultadoDiv.innerHTML = '<p class="text-sm text-amber-600">No se encontraron historias clínicas para ese DNI.</p>';
         return;
     }
 
@@ -137,15 +148,15 @@ document.getElementById('btnBuscar').addEventListener('click', async () => {
             <div class="bg-white p-4 rounded-lg border border-gray-200 mb-3 text-sm space-y-2 shadow-sm">
                 <div class="flex justify-between text-xs text-gray-500 border-b pb-1">
                     <span><strong>Fecha:</strong> ${fecha}</span>
-                    <span><strong>CIE-11:</strong> ${item.diagnostico_cie11 || 'N/A'}</span>
+                    <span><strong>Localidad:</strong> ${item.localidad || 'N/R'}</span>
                 </div>
                 <p class="font-bold text-gray-800 text-base">${item.paciente_nombre} ${item.paciente_apellido} <span class="text-xs text-gray-500">(DNI: ${item.paciente_dni})</span></p>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs bg-slate-50 p-2 rounded border">
                     <p><strong>Edad / Sexo:</strong> ${item.edad || 'N/R'} años / ${item.sexo || 'N/R'}</p>
-                    <p><strong>Barrio / Mpio:</strong> ${item.municipio_barrio || 'N/R'}</p>
-                    <p><strong>Sustancia Principal:</strong> ${item.sustancia_principal || 'N/R'} (Inicio: ${item.edad_inicio || 'N/R'} años)</p>
-                    <p><strong>Policonsumo:</strong> ${item.policonsumo || 'No'}</p>
+                    <p><strong>Grupo Etario:</strong> ${item.grupo_etario || 'N/R'}</p>
+                    <p><strong>Sustancia Consumida:</strong> ${item.sustancia_consumida || 'N/R'} (Inicio: ${item.edad_inicio || 'N/R'} años)</p>
+                    <p><strong>Frecuencia:</strong> ${item.frecuencia_uso || 'N/R'}</p>
                 </div>
 
                 <p><span class="font-semibold text-gray-700">Motivo Consulta:</span> ${item.motivo_consulta}</p>
