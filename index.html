@@ -3,11 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- CSP: restringe orígenes. 'unsafe-inline' se mantiene por Tailwind CDN y estilos críticos. En build de producción usar nonces. -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.supabase.co; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co;">
-
     <title>Dirección de Asistencia y Tratamiento - MDS</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -57,27 +54,22 @@
                     <img src="baner-rojo.jpg" alt="Bloque Rojo" class="h-full w-auto object-cover flex-shrink-0">
                     <img src="banner-amarillo.png" alt="Bloque Amarillo" class="h-full w-auto object-cover flex-shrink-0 -ml-3 sm:-ml-5">
                     <img src="escudo-corrientes.png" alt="Escudo Corrientes" class="h-12 sm:h-16 w-auto object-contain flex-shrink-0 ml-1 sm:ml-2">
-
                     <div class="flex flex-col justify-center leading-none text-slate-900">
                         <span class="text-xs sm:text-base font-bold tracking-tight">Ministerio de</span>
                         <span class="text-xs sm:text-base font-bold tracking-tight">Desarrollo Social</span>
                         <span class="text-sm sm:text-xl font-black uppercase tracking-wider mt-0.5">CORRIENTES</span>
                     </div>
-
                     <div class="hidden md:block h-10 w-px bg-slate-400/40 mx-1"></div>
-
                     <div class="hidden md:flex flex-col justify-center leading-tight text-slate-800">
                         <span class="text-xs sm:text-sm font-medium">Dirección de</span>
                         <span class="text-xs sm:text-sm font-medium">Asistencia y</span>
                         <span class="text-xs sm:text-sm font-medium">Tratamiento</span>
                     </div>
-
                     <div class="hidden lg:flex flex-col justify-center leading-none text-slate-900 ml-3">
                         <span class="text-base sm:text-xl font-extrabold italic tracking-tighter">Siempre</span>
                         <span class="text-base sm:text-xl font-extrabold italic tracking-tighter">cerca</span>
                     </div>
                 </div>
-
                 <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                     <span id="userEmail" class="text-xs sm:text-sm font-medium text-slate-800 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-white/50"></span>
                     <button id="logoutBtn" type="button"
@@ -136,6 +128,14 @@
                         <span class="text-slate-600">egreso</span>
                     </div>
                 </div>
+
+                <div id="adminActions" class="mt-4 hidden">
+                    <button id="btnExportarTodo" type="button"
+                            class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition">
+                        <span>⬇ Exportar base completa (.xlsx)</span>
+                    </button>
+                    <p class="text-[10px] text-slate-500 mt-1">Solo visible para administradores / epidemiología</p>
+                </div>
             </section>
 
             <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -165,7 +165,6 @@
                 </div>
             </section>
 
-            <!-- DETALLE FICHA -->
             <section id="detalleFichaPaciente" class="hidden bg-slate-50/50 rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
                 <div class="flex items-center justify-between">
                     <div>
@@ -261,7 +260,7 @@
         </main>
     </div>
 
-    <!-- 3. FORMULARIO EPIDEMIOLÓGICO -->
+    <!-- 3. FORMULARIO -->
     <div id="formularioSection" class="hidden min-h-screen py-8 px-4 flex justify-center">
         <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-5xl border-t-4 border-sky-600 space-y-8">
             <div class="flex justify-between items-center border-b pb-4">
@@ -276,7 +275,6 @@
             </div>
 
             <form id="clinicalForm" class="space-y-6" novalidate>
-                <!-- BLOQUE 1 -->
                 <div class="bg-sky-50/50 p-5 rounded-lg border border-sky-200 space-y-4">
                     <h4 class="text-sm font-bold text-sky-800 uppercase tracking-wide border-b border-sky-200 pb-2">
                         1. Identificación y Sociodemografía
@@ -345,7 +343,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="localidad">Localidad (Corrientes)</label>
-                            <select id="localidad" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                            <select id="localidad" class="mt-1 block w-full px-3 py-2 border rounded-md bg-white">
                                 <option value="">Seleccionar localidad...</option>
                                 <option value="Alvear">Alvear</option>
                                 <option value="Bella Vista">Bella Vista</option>
@@ -515,7 +513,6 @@
                     </div>
                 </div>
 
-                <!-- BLOQUE 2 -->
                 <div class="bg-slate-50 p-5 rounded-lg border border-slate-200 space-y-4">
                     <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wide border-b border-slate-200 pb-2">
                         2. Patrones de Consumo y Sustancias
@@ -561,7 +558,6 @@
                     </div>
                 </div>
 
-                <!-- BLOQUE 3 -->
                 <div class="bg-blue-50/40 p-5 rounded-lg border border-blue-200 space-y-4">
                     <h4 class="text-sm font-bold text-blue-900 uppercase tracking-wide border-b border-blue-200 pb-2">
                         3. Contexto, Motivos y Prácticas de Cuidado
@@ -612,7 +608,6 @@
                     </div>
                 </div>
 
-                <!-- BLOQUE 4 -->
                 <div class="bg-purple-50/40 p-5 rounded-lg border border-purple-200 space-y-4">
                     <h4 class="text-sm font-bold text-purple-900 uppercase tracking-wide border-b border-purple-200 pb-2">
                         4. Asistencia, Salud Mental y Red Territorial
@@ -682,7 +677,6 @@
         </div>
     </div>
 
-    <!-- Configuración de entorno (reemplazar en producción por inyección del servidor) -->
     <script>
         window.ENV = window.ENV || {
             SUPABASE_URL: 'https://hgibtilxeypuvpraziac.supabase.co',
