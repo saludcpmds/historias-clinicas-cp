@@ -33,7 +33,7 @@ const cantTratamiento = document.getElementById('cantTratamiento');
 const cantSeguimiento = document.getElementById('cantSeguimiento');
 const cantEgreso = document.getElementById('cantEgreso');
 
-// Elementos de la Ficha Clinica Individual
+// Elementos de la Ficha Clínica Individual
 const fichaDniHeader = document.getElementById('fichaDniHeader');
 const fichaNombreHeader = document.getElementById('fichaNombreHeader');
 const fichaEstadoBadge = document.getElementById('fichaEstadoBadge');
@@ -468,49 +468,50 @@ clinicalForm.addEventListener('submit', async (e) => {
         return;
     }
 
+    // Se convierte "" a null en campos opcionales/desplegables para evitar errores de CHECK constraint en Supabase
     const payload = {
         medico_id: user.id,
 
         // BLOQUE 1: IDENTIFICACIÓN Y SOCIODEMOGRAFÍA
-        paciente_dni: document.getElementById('pacienteDni').value,
-        paciente_nombre: document.getElementById('pacienteNombre').value,
-        paciente_apellido: document.getElementById('pacienteApellido').value,
-        estado_paciente: document.getElementById('estadoPaciente').value,
-        sexo: document.getElementById('sexo').value,
+        paciente_dni: document.getElementById('pacienteDni').value || null,
+        paciente_nombre: document.getElementById('pacienteNombre').value || null,
+        paciente_apellido: document.getElementById('pacienteApellido').value || null,
+        estado_paciente: document.getElementById('estadoPaciente').value || 'en_tratamiento',
+        sexo: document.getElementById('sexo').value || null,
         fecha_nacimiento: document.getElementById('fechaNacimiento').value || null,
         edad: document.getElementById('edad').value ? parseInt(document.getElementById('edad').value) : null,
-        grupo_etario: document.getElementById('grupoEtario').value,
-        localidad: document.getElementById('localidad').value,
-        barrio_residencia: document.getElementById('barrioResidencia').value,
-        nivel_educativo: document.getElementById('nivelEducativo').value,
-        situacion_laboral: document.getElementById('situacionLaboral').value,
-        tipo_vivienda: document.getElementById('tipoVivienda').value,
-        situacion_habitacional: document.getElementById('situacionHabitacional').value,
+        grupo_etario: document.getElementById('grupoEtario').value || null,
+        localidad: document.getElementById('localidad').value || null,
+        barrio_residencia: document.getElementById('barrioResidencia').value || null,
+        nivel_educativo: document.getElementById('nivelEducativo').value || null,
+        situacion_laboral: document.getElementById('situacionLaboral').value || null,
+        tipo_vivienda: document.getElementById('tipoVivienda').value || null,
+        situacion_habitacional: document.getElementById('situacionHabitacional').value || null,
         habitaciones_dormir: document.getElementById('habitacionesDormir').value ? parseInt(document.getElementById('habitacionesDormir').value) : null,
         personas_vivienda: document.getElementById('personasVivienda').value ? parseInt(document.getElementById('personasVivienda').value) : null,
-        servicio_agua: document.getElementById('servicioAgua').value,
-        eliminacion_excretas: document.getElementById('eliminacionExcretas').value,
+        servicio_agua: document.getElementById('servicioAgua').value || null,
+        eliminacion_excretas: document.getElementById('eliminacionExcretas').value || null,
 
         // BLOQUE 2: PATRONES DE CONSUMO
-        sustancia_consumida: document.getElementById('sustanciaConsumida').value,
+        sustancia_consumida: document.getElementById('sustanciaConsumida').value || null,
         edad_inicio: document.getElementById('edadInicio').value ? parseInt(document.getElementById('edadInicio').value) : null,
-        frecuencia_uso: document.getElementById('frecuenciaUso').value,
-        policonsumo: document.getElementById('policonsumo').value,
+        frecuencia_uso: document.getElementById('frecuenciaUso').value || null,
+        policonsumo: document.getElementById('policonsumo').value || null,
 
         // BLOQUE 3: CONTEXTO Y CUIDADO
-        lugar_consumo: document.getElementById('lugarConsumo').value,
-        red_acompanamiento: document.getElementById('redAcompanamiento').value,
-        motivos: document.getElementById('motivos').value,
-        pautas_autocuidado: document.getElementById('pautasAutocuidado').value,
+        lugar_consumo: document.getElementById('lugarConsumo').value || null,
+        red_acompanamiento: document.getElementById('redAcompanamiento').value || null,
+        motivos: document.getElementById('motivos').value || null,
+        pautas_autocuidado: document.getElementById('pautasAutocuidado').value || null,
 
         // BLOQUE 4: ASISTENCIA Y OBSERVACIONES
-        consultas_previas: document.getElementById('consultasPrevias').value,
-        atencion_guardia: document.getElementById('atencionGuardia').value,
-        atencion_salud_mental: document.getElementById('atencionSaludMental').value,
-        internaciones: document.getElementById('internaciones').value,
-        vinculacion_red: document.getElementById('vinculacionRed').value,
-        motivo_consulta: document.getElementById('motivoConsulta').value,
-        observaciones: document.getElementById('observaciones').value
+        consultas_previas: document.getElementById('consultasPrevias').value || null,
+        atencion_guardia: document.getElementById('atencionGuardia').value || null,
+        atencion_salud_mental: document.getElementById('atencionSaludMental').value || null,
+        internaciones: document.getElementById('internaciones').value || null,
+        vinculacion_red: document.getElementById('vinculacionRed').value || null,
+        motivo_consulta: document.getElementById('motivoConsulta').value || null,
+        observaciones: document.getElementById('observaciones').value || null
     };
 
     const { error } = await supabaseClient
