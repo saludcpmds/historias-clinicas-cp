@@ -45,7 +45,7 @@
         </div>
     </div>
 
-    <!-- 2. DASHBOARD / PANEL PRINCIPAL -->
+    <!-- 2. DASHBOARD / PANEL PRINCIPAL (OCULTO POR DEFECTO) -->
     <div id="dashboardSection" class="hidden min-h-screen pb-12">
         <!-- Header Institucional De Punta a Punta -->
         <header class="w-full bg-[#A4C2E8] shadow-sm mb-6 font-['Barlow',sans-serif] sticky top-0 z-30">
@@ -78,10 +78,9 @@
                 </div>
 
                 <!-- Usuario y Cierre de Sesión -->
-                <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-white/80 px-3 py-1.5 rounded-lg shadow-sm border border-slate-200">
-                    <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">USUARIO:</span>
-                    <span id="userEmail" class="text-slate-900 font-bold">Cargando...</span>
-                </div>
+                <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    <span id="userEmail" class="text-xs sm:text-sm font-medium text-slate-800 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-white/50"></span>
+                    <button id="logoutBtn" type="button" class="text-xs sm:text-sm bg-red-500 hover:bg-red-600 text-white font-medium px-3 sm:px-4 py-1.5 rounded-lg shadow-sm transition-colors duration-150">
                         Salir
                     </button>
                 </div>
@@ -173,7 +172,7 @@
                 </div>
             </section>
 
-            <!-- DETALLE DE FICHA DEL PACIENTE -->
+            <!-- DETALLE DE FICHA DEL PACIENTE (OCULTO POR DEFECTO) -->
             <section id="detalleFichaPaciente" class="hidden bg-slate-50/50 rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
                 <!-- Header Ficha -->
                 <div class="flex items-center justify-between">
@@ -211,7 +210,7 @@
                         </div>
                     </div>
 
-                    <!-- Formulario Desplegable para Nueva Entrada (Actualizado) -->
+                    <!-- Formulario Desplegable para Nueva Entrada -->
                     <div id="formNuevaEntrada" class="hidden bg-sky-50/50 p-4 rounded-xl border border-sky-200 space-y-3">
                         <h4 class="text-xs font-bold text-sky-800 uppercase">Registrar nueva entrada</h4>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -267,7 +266,7 @@
         </main>
     </div>
 
-    <!-- 3. FORMULARIO EPIDEMIOLÓGICO COMPLETO -->
+    <!-- 3. FORMULARIO EPIDEMIOLÓGICO COMPLETO (OCULTO POR DEFECTO) -->
     <div id="formularioSection" class="hidden min-h-screen py-8 px-4 flex justify-center">
         <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-5xl border-t-4 border-sky-600 space-y-8">
             <div class="flex justify-between items-center border-b pb-4">
@@ -664,6 +663,7 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- Script principal con atributo defer -->
+    <script src="app.js" defer></script>
 </body>
 </html>
