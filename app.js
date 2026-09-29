@@ -128,43 +128,45 @@ function limpiarVistaInicial() {
     detalleFichaPaciente.classList.add('hidden');
 }
 
-// --- CARGAR MÉTRICAS GLOBALES REALES DESDE SUPABASE ---
+// --- CARGAR MÉTRICAS GLOBALES REALES CON CONTEO DIRECTO DESDE SUPABASE ---
 async function cargarMetricasGlobales() {
-    const { data, error } = await supabaseClient.from('historias_clinicas').select('paciente_dni, estado_paciente');
+    try {
+        // Conteo total directo de historias clínicas
+        const { count: total, error: errTotal } = await supabaseClient
+            .from('historias_clinicas')
+            .select('*', { count: 'exact', head: true });
 
-    if (error || !data) {
-        console.error('Error al obtener métricas globales:', error);
-        return;
-    }
-
-    // Filtrar para considerar DNI únicos
-    const dnisVistos = new Set();
-    const pacientesUnicos = data.filter(item => {
-        if (!item.paciente_dni) return true;
-        if (dnisVistos.has(item.paciente_dni)) return false;
-        dnisVistos.add(item.paciente_dni);
-        return true;
-    });
-
-    totalFichasActivas.textContent = pacientesUnicos.length;
-
-    let enTratamiento = 0;
-    let enSeguimiento = 0;
-    let egreso = 0;
-
-    pacientesUnicos.forEach(item => {
-        if (item.estado_paciente === 'en_seguimiento') {
-            enSeguimiento++;
-        } else if (item.estado_paciente === 'egreso') {
-            egreso++;
-        } else {
-            enTratamiento++;
+        if (!errTotal && total !== null) {
+            totalFichasActivas.textContent = total;
         }
-    });
 
-    cantTratamiento.textContent = enTratamiento;
-    cantSeguimiento.textContent = enSeguimiento;
-    cantEgreso.textContent = egreso;
+        // Conteo por estado: En Tratamiento
+        const { count: countTratamiento } = await supabaseClient
+            .from('historias_clinicas')
+            .select('*', { count: 'exact', head: true })
+            .or('estado_paciente.eq.en_tratamiento,estado_paciente.is.null');
+
+        cantTratamiento.textContent = countTratamiento || 0;
+
+        // Conteo por estado: En Seguimiento
+        const { count: countSeguimiento } = await supabaseClient
+            .from('historias_clinicas')
+            .select('*', { count: 'exact', head: true })
+            .eq('estado_paciente', 'en_seguimiento');
+
+        cantSeguimiento.textContent = countSeguimiento || 0;
+
+        // Conteo por estado: Egreso
+        const { count: countEgreso } = await supabaseClient
+            .from('historias_clinicas')
+            .select('*', { count: 'exact', head: true })
+            .eq('estado_paciente', 'egreso');
+
+        cantEgreso.textContent = countEgreso || 0;
+
+    } catch (err) {
+        console.error('Error al cargar métricas globales:', err);
+    }
 }
 
 // --- BUSCADOR POR DNI EXACTO O NOMBRE (SOLO AL PRESIONAR BUSCAR) ---
