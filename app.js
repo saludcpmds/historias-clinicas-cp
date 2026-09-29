@@ -55,10 +55,9 @@ const cambioEstadoRapido = document.getElementById('cambioEstadoRapido');
 const btnExportarExcel = document.getElementById('btnExportarExcel');
 
 
-// --- FUNCIÓN AUXILIAR PARA OBTENER LA FIRMA DEL PROFESIONAL ---
+// --- FUNCIÓN AUXILIAR PARA OBTENER EL NOMBRE DEL PROFESIONAL ---
 function obtenerNombreProfesional(user) {
     if (!user) return 'No especificado';
-    
     const meta = user.user_metadata;
     
     if (meta && meta.apellido && meta.nombre) {
@@ -66,24 +65,29 @@ function obtenerNombreProfesional(user) {
     } else if (meta && meta.nombre) {
         return meta.nombre;
     }
-    
     return user.email || 'No especificado';
 }
 
 
-// --- INICIALIZACIÓN DE SESIÓN ---
+// --- INICIALIZACIÓN DE SESIÓN Y VISTAS ---
 window.addEventListener('DOMContentLoaded', async () => {
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session && session.user) {
             mostrarDashboard(session.user);
+        } else {
+            // Si no hay sesión activa, ocultar todo salvo el login
+            if (loginSection) loginSection.classList.remove('hidden');
+            if (dashboardSection) dashboardSection.classList.add('hidden');
+            if (formularioSection) formularioSection.classList.add('hidden');
         }
     } catch (err) {
-        console.error("Error recuperando sesión:", err);
+        console.error("Error al iniciar sesión:", err);
     }
     
     asegurarBotonEditarFicha();
 });
+
 
 // --- INICIO DE SESIÓN ---
 if (loginForm) {
@@ -107,19 +111,27 @@ if (loginForm) {
     });
 }
 
+
 // --- CERRAR SESIÓN ---
 if (logoutBtn) {
-    logoutBtn.addEventListener('click', async () => {
-        await supabaseClient.auth.signOut();
-        location.reload();
+    logoutBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        try {
+            await supabaseClient.auth.signOut();
+        } catch (err) {
+            console.error('Error al cerrar sesión:', err);
+        } finally {
+            location.reload();
+        }
     });
 }
 
-// --- NAVEGACIÓN Y VISTAS ---
+
+// --- CONTROL DE PANTALLAS (DASHBOARD Y FORMULARIO) ---
 function mostrarDashboard(user) {
     if (loginSection) loginSection.classList.add('hidden');
-    if (formularioSection) formularioSection.classList.add('hidden');
-    if (dashboardSection) dashboardSection.classList.remove('hidden');
+    if (formularioSection) formularioSection.classList.add('hidden'); // Oculta el formulario obligatoriamente
+    if (dashboardSection) dashboardSection.classList.remove('hidden'); // Muestra el dashboard
     
     const nombreUsuario = obtenerNombreProfesional(user);
     if (userEmailText) {
@@ -133,21 +145,23 @@ function mostrarDashboard(user) {
 if (btnNuevaFicha) {
     btnNuevaFicha.addEventListener('click', () => {
         pacienteActual = null;
-        if (dashboardSection) dashboardSection.classList.add('hidden');
-        if (formularioSection) formularioSection.classList.remove('hidden');
+        if (dashboardSection) dashboardSection.classList.add('hidden'); // Oculta dashboard
+        if (formularioSection) formularioSection.classList.remove('hidden'); // Muestra formulario
         if (clinicalStatus) clinicalStatus.classList.add('hidden');
         if (clinicalForm) clinicalForm.reset();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 }
 
 if (btnVolverDashboard) {
     btnVolverDashboard.addEventListener('click', () => {
-        if (formularioSection) formularioSection.classList.add('hidden');
-        if (dashboardSection) dashboardSection.classList.remove('hidden');
+        if (formularioSection) formularioSection.classList.add('hidden'); // Oculta formulario
+        if (dashboardSection) dashboardSection.classList.remove('hidden'); // Muestra dashboard
         limpiarVistaInicial();
         cargarMetricasGlobales();
     });
 }
+
 
 // --- VISTA INICIAL VACÍA ---
 function limpiarVistaInicial() {
@@ -163,7 +177,8 @@ function limpiarVistaInicial() {
     if (detalleFichaPaciente) detalleFichaPaciente.classList.add('hidden');
 }
 
-// --- CARGAR MÉTRICAS GLOBALES REALES CON CONTEO DIRECTO DESDE SUPABASE ---
+
+// --- CARGAR MÉTRICAS GLOBALES REALES DESDE SUPABASE ---
 async function cargarMetricasGlobales() {
     try {
         const { count: total, error: errTotal } = await supabaseClient
@@ -200,7 +215,8 @@ async function cargarMetricasGlobales() {
     }
 }
 
-// --- BUSCADOR POR DNI EXACTO O NOMBRE (SOLO AL PRESIONAR BUSCAR) ---
+
+// --- BUSCADOR POR DNI EXACTO O NOMBRE ---
 if (btnBuscar) {
     btnBuscar.addEventListener('click', async () => {
         const inputBuscar = document.getElementById('buscarDNI');
@@ -258,7 +274,8 @@ if (btnBuscar) {
     });
 }
 
-// --- RENDERIZAR TABLA CON "Ver Historial" ---
+
+// --- RENDERIZAR TABLA ---
 function renderTabla(registros) {
     if (!tablaPacientesBody) return;
 
@@ -306,6 +323,7 @@ function renderTabla(registros) {
     tablaPacientesBody.innerHTML = html;
 }
 
+
 // --- MOSTRAR HISTORIAL DEL PACIENTE ---
 async function verFichaPaciente(id) {
     const { data, error } = await supabaseClient
@@ -349,6 +367,7 @@ async function verFichaPaciente(id) {
     }
 }
 
+
 // --- CREACIÓN DINÁMICA DEL BOTÓN "VER / EDITAR FICHA" ---
 function asegurarBotonEditarFicha() {
     if (!btnNuevaEntrada) return;
@@ -365,6 +384,7 @@ function asegurarBotonEditarFicha() {
         btnVerFicha.addEventListener('click', cargarFichaParaEditar);
     }
 }
+
 
 // --- ABRIR Y PRECARGAR FORMULARIO COMPLETO DEL PACIENTE ---
 function cargarFichaParaEditar() {
@@ -418,7 +438,10 @@ function cargarFichaParaEditar() {
     setValor('vinculacionRed', pacienteActual.vinculacion_red);
     setValor('motivoConsulta', pacienteActual.motivo_consulta);
     setValor('observaciones', pacienteActual.observaciones);
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
 
 // --- TIMELINE Y ENTRADAS DEL PACIENTE ---
 function cargarEvolucionesTimeline(paciente) {
@@ -470,6 +493,7 @@ function cargarEvolucionesTimeline(paciente) {
     if (cantEvolucionesFicha) cantEvolucionesFicha.textContent = totalEvoluciones;
     if (timelineContenedor) timelineContenedor.innerHTML = timelineHTML;
 }
+
 
 // --- AGREGAR NUEVA ENTRADA A LA FICHA ---
 if (btnNuevaEntrada) {
@@ -542,6 +566,7 @@ if (btnGuardarEntrada) {
     });
 }
 
+
 // --- CAMBIAR ESTADO RÁPIDO DESDE LA FICHA ---
 if (cambioEstadoRapido) {
     cambioEstadoRapido.addEventListener('change', async (e) => {
@@ -563,6 +588,7 @@ if (cambioEstadoRapido) {
         }
     });
 }
+
 
 // --- EXPORTAR FICHA INDIVIDUAL A EXCEL ---
 if (btnExportarExcel) {
@@ -602,6 +628,7 @@ if (btnExportarExcel) {
         XLSX.writeFile(workbook, `Ficha_${pacienteActual.paciente_dni || 'Paciente'}.xlsx`);
     });
 }
+
 
 // --- GUARDAR O ACTUALIZAR HISTORIA CLÍNICA COMPLETA ---
 if (clinicalForm) {
