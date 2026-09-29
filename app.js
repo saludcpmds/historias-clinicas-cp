@@ -59,6 +59,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (session) {
         mostrarDashboard(session.user);
     }
+    
+    // Inyectar/Asegurar botón de Editar Ficha al lado de + NUEVA ENTRADA si no existe en el HTML
+    asegurarBotonEditarFicha();
 });
 
 // --- INICIO DE SESIÓN ---
@@ -92,11 +95,11 @@ function mostrarDashboard(user) {
     dashboardSection.classList.remove('hidden');
     userEmailText.textContent = `${user.email}`;
     
-    // Dejar la vista inicial limpia sin realizar consultas automáticas
     limpiarVistaInicial();
 }
 
 btnNuevaFicha.addEventListener('click', () => {
+    pacienteActual = null; // Modo Creación Nueva Ficha
     dashboardSection.classList.add('hidden');
     formularioSection.classList.remove('hidden');
     clinicalStatus.classList.add('hidden');
@@ -118,6 +121,7 @@ function limpiarVistaInicial() {
             </td>
         </tr>`;
     contadorResultados.textContent = '0 fichas mostradas';
+    detalleFichaPaciente.classList.add('hidden');
 }
 
 // --- ACTUALIZAR MÉTRICAS / CHIPS POR ESTADO DESDE RESULTADOS BÚSQUEDA ---
@@ -166,11 +170,9 @@ btnBuscar.addEventListener('click', async () => {
 
     let consulta = supabaseClient.from('historias_clinicas').select('*');
 
-    // Si es numérico, busca únicamente por DNI exacto
     if (!isNaN(query)) {
         consulta = consulta.eq('paciente_dni', query);
     } else {
-        // Si contiene texto, busca por coincidencias parciales en nombre o apellido
         consulta = consulta.or(`paciente_nombre.ilike.%${query}%,paciente_apellido.ilike.%${query}%`);
     }
 
@@ -186,7 +188,6 @@ btnBuscar.addEventListener('click', async () => {
         return;
     }
 
-    // Filtrar para mantener solo el registro más reciente por DNI
     const dnisVistos = new Set();
     const pacientesUnicos = data.filter(paciente => {
         if (!paciente.paciente_dni) return true;
@@ -203,7 +204,7 @@ btnBuscar.addEventListener('click', async () => {
 });
 
 
-// --- RENDERIZAR TABLA ---
+// --- RENDERIZAR TABLA CON "Ver Historial" ---
 function renderTabla(registros) {
     if (registros.length === 0) {
         tablaPacientesBody.innerHTML = `
@@ -239,7 +240,7 @@ function renderTabla(registros) {
                 <td class="px-6 py-4">${estadoBadge}</td>
                 <td class="px-6 py-4 text-right">
                     <button onclick="verFichaPaciente('${item.id}')" class="text-xs bg-sky-50 text-sky-700 font-bold px-3 py-1.5 rounded-lg border border-sky-200 hover:bg-sky-100 transition">
-                        Ver ficha
+                        Ver Historial
                     </button>
                 </td>
             </tr>
@@ -250,7 +251,7 @@ function renderTabla(registros) {
 }
 
 
-// --- MOSTRAR / VER FICHA DEL PACIENTE ---
+// --- MOSTRAR HISTORIAL DEL PACIENTE Y AGREGAR BOTÓN DE VER/EDITAR FICHA ---
 async function verFichaPaciente(id) {
     const { data, error } = await supabaseClient
         .from('historias_clinicas')
@@ -265,11 +266,9 @@ async function verFichaPaciente(id) {
 
     pacienteActual = data;
 
-    // Llenar datos de encabezado
     fichaDniHeader.textContent = `FICHA - DNI ${data.paciente_dni || 'N/R'}`;
     fichaNombreHeader.textContent = `${data.paciente_nombre || ''} ${data.paciente_apellido || ''}`;
     
-    // Badge de estado en el header de la ficha
     if (data.estado_paciente === 'en_seguimiento') {
         fichaEstadoBadge.innerHTML = '<span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 border border-slate-300"><span class="h-2 w-2 rounded-full bg-slate-400"></span>En seguimiento</span>';
     } else if (data.estado_paciente === 'egreso') {
@@ -278,21 +277,86 @@ async function verFichaPaciente(id) {
         fichaEstadoBadge.innerHTML = '<span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>En tratamiento</span>';
     }
 
-    // Selector de estado sincronizado
     cambioEstadoRapido.value = data.estado_paciente || 'en_tratamiento';
 
-    // Calcular Días desde el Alta
     const fechaInicio = new Date(data.created_at);
     const hoy = new Date();
     const diferenciaDias = Math.floor((hoy - fechaInicio) / (1000 * 60 * 60 * 24));
     cantDiasFicha.textContent = diferenciaDias >= 0 ? diferenciaDias : 0;
 
-    // Cargar historial de evoluciones / entradas para el timeline
     cargarEvolucionesTimeline(data);
 
-    // Desplegar contenedor de la ficha
     detalleFichaPaciente.classList.remove('hidden');
     detalleFichaPaciente.scrollIntoView({ behavior: 'smooth' });
+}
+
+
+// --- CREACIÓN DINÁMICA DEL BOTÓN "VER / EDITAR FICHA" JUNTO A "+ NUEVA ENTRADA" ---
+function asegurarBotonEditarFicha() {
+    if (!btnNuevaEntrada) return;
+    
+    let btnVerFicha = document.getElementById('btnVerFichaCompleta');
+    if (!btnVerFicha) {
+        btnVerFicha = document.createElement('button');
+        btnVerFicha.id = 'btnVerFichaCompleta';
+        btnVerFicha.className = 'text-xs font-bold text-sky-700 bg-sky-50 border border-sky-200 px-3 py-1.5 rounded-lg hover:bg-sky-100 transition mr-2';
+        btnVerFicha.textContent = 'Ver / Editar Ficha';
+        
+        btnNuevaEntrada.parentNode.insertBefore(btnVerFicha, btnNuevaEntrada);
+
+        btnVerFicha.addEventListener('click', cargarFichaParaEditar);
+    }
+}
+
+
+// --- ABRIR Y PRECARGAR FORMULARIO COMPLETO DEL PACIENTE ---
+function cargarFichaParaEditar() {
+    if (!pacienteActual) {
+        alert('No hay un paciente seleccionado.');
+        return;
+    }
+
+    dashboardSection.classList.add('hidden');
+    formularioSection.classList.remove('hidden');
+    clinicalStatus.classList.add('hidden');
+
+    // Cargar todos los valores existentes en los campos del formulario
+    document.getElementById('pacienteDni').value = pacienteActual.paciente_dni || '';
+    document.getElementById('pacienteNombre').value = pacienteActual.paciente_nombre || '';
+    document.getElementById('pacienteApellido').value = pacienteActual.paciente_apellido || '';
+    document.getElementById('estadoPaciente').value = pacienteActual.estado_paciente || 'en_tratamiento';
+    document.getElementById('sexo').value = pacienteActual.sexo || '';
+    document.getElementById('fechaNacimiento').value = pacienteActual.fecha_nacimiento || '';
+    document.getElementById('edad').value = pacienteActual.edad || '';
+    document.getElementById('grupoEtario').value = pacienteActual.grupo_etario || '';
+    document.getElementById('localidad').value = pacienteActual.localidad || '';
+    document.getElementById('barrioResidencia').value = pacienteActual.barrio_residencia || '';
+    document.getElementById('nivelEducativo').value = pacienteActual.nivel_educativo || '';
+    document.getElementById('situacionLaboral').value = pacienteActual.situacion_laboral || '';
+    document.getElementById('tipoVivienda').value = pacienteActual.tipo_vivienda || '';
+    document.getElementById('situacionHabitacional').value = pacienteActual.situacion_habitacional || '';
+    document.getElementById('habitacionesDormir').value = pacienteActual.habitaciones_dormir || '';
+    document.getElementById('personasVivienda').value = pacienteActual.personas_vivienda || '';
+    document.getElementById('servicioAgua').value = pacienteActual.servicio_agua || '';
+    document.getElementById('eliminacionExcretas').value = pacienteActual.eliminacion_excretas || '';
+
+    document.getElementById('sustanciaConsumida').value = pacienteActual.sustancia_consumida || '';
+    document.getElementById('edadInicio').value = pacienteActual.edad_inicio || '';
+    document.getElementById('frecuenciaUso').value = pacienteActual.frecuencia_uso || '';
+    document.getElementById('policonsumo').value = pacienteActual.policonsumo || '';
+
+    document.getElementById('lugarConsumo').value = pacienteActual.lugar_consumo || '';
+    document.getElementById('redAcompanamiento').value = pacienteActual.red_acompanamiento || '';
+    document.getElementById('motivos').value = pacienteActual.motivos || '';
+    document.getElementById('pautasAutocuidado').value = pacienteActual.pautas_autocuidado || '';
+
+    document.getElementById('consultasPrevias').value = pacienteActual.consultas_previas || '';
+    document.getElementById('atencionGuardia').value = pacienteActual.atencion_guardia || '';
+    document.getElementById('atencionSaludMental').value = pacienteActual.atencion_salud_mental || '';
+    document.getElementById('internaciones').value = pacienteActual.internaciones || '';
+    document.getElementById('vinculacionRed').value = pacienteActual.vinculacion_red || '';
+    document.getElementById('motivoConsulta').value = pacienteActual.motivo_consulta || '';
+    document.getElementById('observaciones').value = pacienteActual.observaciones || '';
 }
 
 
@@ -300,7 +364,6 @@ async function verFichaPaciente(id) {
 function cargarEvolucionesTimeline(paciente) {
     let entradas = paciente.evoluciones_json;
 
-    // Si aún no existen evoluciones, creamos una lista por defecto con el registro inicial
     if (!entradas || !Array.isArray(entradas) || entradas.length === 0) {
         entradas = [{
             tipo: 'Ingreso',
@@ -445,7 +508,7 @@ btnExportarExcel.addEventListener('click', () => {
 });
 
 
-// --- GUARDAR HISTORIA CLÍNICA COMPLETA ---
+// --- GUARDAR O ACTUALIZAR HISTORIA CLÍNICA COMPLETA ---
 clinicalForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     clinicalStatus.classList.add('hidden');
@@ -461,7 +524,6 @@ clinicalForm.addEventListener('submit', async (e) => {
     const payload = {
         medico_id: user.id,
 
-        // BLOQUE 1: IDENTIFICACIÓN Y SOCIODEMOGRAFÍA
         paciente_dni: document.getElementById('pacienteDni').value || null,
         paciente_nombre: document.getElementById('pacienteNombre').value || null,
         paciente_apellido: document.getElementById('pacienteApellido').value || null,
@@ -481,19 +543,16 @@ clinicalForm.addEventListener('submit', async (e) => {
         servicio_agua: document.getElementById('servicioAgua').value || null,
         eliminacion_excretas: document.getElementById('eliminacionExcretas').value || null,
 
-        // BLOQUE 2: PATRONES DE CONSUMO
         sustancia_consumida: document.getElementById('sustanciaConsumida').value || null,
         edad_inicio: document.getElementById('edadInicio').value ? parseInt(document.getElementById('edadInicio').value) : null,
         frecuencia_uso: document.getElementById('frecuenciaUso').value || null,
         policonsumo: document.getElementById('policonsumo').value || null,
 
-        // BLOQUE 3: CONTEXTO Y CUIDADO
         lugar_consumo: document.getElementById('lugarConsumo').value || null,
         red_acompanamiento: document.getElementById('redAcompanamiento').value || null,
         motivos: document.getElementById('motivos').value || null,
         pautas_autocuidado: document.getElementById('pautasAutocuidado').value || null,
 
-        // BLOQUE 4: ASISTENCIA Y OBSERVACIONES
         consultas_previas: document.getElementById('consultasPrevias').value || null,
         atencion_guardia: document.getElementById('atencionGuardia').value || null,
         atencion_salud_mental: document.getElementById('atencionSaludMental').value || null,
@@ -503,15 +562,25 @@ clinicalForm.addEventListener('submit', async (e) => {
         observaciones: document.getElementById('observaciones').value || null
     };
 
-    const { error } = await supabaseClient
-        .from('historias_clinicas')
-        .insert([payload]);
+    let respuesta;
 
-    if (error) {
-        clinicalStatus.textContent = 'Error al guardar: ' + error.message;
+    // Si pacienteActual existe, se actualiza el registro; de lo contrario, se crea uno nuevo
+    if (pacienteActual && pacienteActual.id) {
+        respuesta = await supabaseClient
+            .from('historias_clinicas')
+            .update(payload)
+            .eq('id', pacienteActual.id);
+    } else {
+        respuesta = await supabaseClient
+            .from('historias_clinicas')
+            .insert([payload]);
+    }
+
+    if (respuesta.error) {
+        clinicalStatus.textContent = 'Error al guardar: ' + respuesta.error.message;
         clinicalStatus.className = 'text-sm mt-3 text-center text-red-500 font-semibold block';
     } else {
-        clinicalStatus.textContent = '¡Historia clínica guardada con éxito!';
+        clinicalStatus.textContent = pacienteActual ? '¡Ficha actualizada con éxito!' : '¡Historia clínica guardada con éxito!';
         clinicalStatus.className = 'text-sm mt-3 text-center text-emerald-600 font-bold block';
         clinicalForm.reset();
 
