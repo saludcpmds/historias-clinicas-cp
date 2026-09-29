@@ -36,7 +36,7 @@ const SEARCH_LIMIT = 50;
  */
 const ADMIN_EMAILS = [
   'armandojara07@gmail.com',
-  'laurandreabenitez@gmail.com'
+  'epidemiologo@mds.corrientes.gov.ar'
 ];
 
 // --- INICIALIZACIÓN ---
@@ -79,6 +79,37 @@ function actualizarUIAdmin() {
 
 // --- EVENTOS ---
 function inicializarEventos() {
+  // Deshabilitar clic derecho sobre datos de pacientes (tabla y detalle)
+  const zonasProtegidas = ['resultadoBusqueda', 'detalleFichaPaciente', 'tablaPacientesBody'];
+  document.addEventListener('contextmenu', (e) => {
+    const enZona = zonasProtegidas.some((id) => {
+      const el = document.getElementById(id);
+      return el && el.contains(e.target);
+    });
+    if (enZona) {
+      e.preventDefault();
+    }
+  });
+
+  // Opcional: bloquear Ctrl+C / Cmd+C solo dentro de esas zonas
+  document.addEventListener('keydown', (e) => {
+    const key = e.key?.toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && (key === 'c' || key === 'x' || key === 'a')) {
+      const enZona = zonasProtegidas.some((id) => {
+        const el = document.getElementById(id);
+        return el && el.contains(document.activeElement || e.target);
+      });
+      // Si hay selección dentro de la tabla, prevenir
+      const sel = window.getSelection?.()?.toString();
+      if (sel && zonasProtegidas.some((id) => {
+        const el = document.getElementById(id);
+        return el && el.contains(window.getSelection()?.anchorNode);
+      })) {
+        e.preventDefault();
+      }
+    }
+  });
+
   document.getElementById('loginForm')?.addEventListener('submit', manejarLogin);
 
   document.getElementById('logoutBtn')?.addEventListener('click', async (e) => {
