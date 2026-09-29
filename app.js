@@ -92,8 +92,8 @@ function mostrarDashboard(user) {
     dashboardSection.classList.remove('hidden');
     userEmailText.textContent = `${user.email}`;
     
-    // Cargar pacientes recientes y métricas por estado
-    cargarPacientesRecientes();
+    // Dejar la vista inicial limpia sin realizar consultas automáticas
+    limpiarVistaInicial();
 }
 
 btnNuevaFicha.addEventListener('click', () => {
@@ -106,53 +106,21 @@ btnNuevaFicha.addEventListener('click', () => {
 btnVolverDashboard.addEventListener('click', () => {
     formularioSection.classList.add('hidden');
     dashboardSection.classList.remove('hidden');
-    cargarPacientesRecientes();
+    limpiarVistaInicial();
 });
 
-
-// --- CARGAR HISTORIAS CLÍNICAS RECIENTES (UNICAS POR DNI) Y CONTEO POR ESTADOS ---
-async function cargarPacientesRecientes() {
+// --- VISTA INICIAL VACÍA ---
+function limpiarVistaInicial() {
     tablaPacientesBody.innerHTML = `
         <tr>
             <td colSpan="5" class="px-6 py-8 text-center text-xs text-slate-400">
-                Cargando registros recientes...
+                Ingrese un DNI o Nombre en el buscador y presione "Buscar" para ver resultados.
             </td>
         </tr>`;
-
-    const { data, error } = await supabaseClient
-        .from('historias_clinicas')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        tablaPacientesBody.innerHTML = `
-            <tr>
-                <td colSpan="5" class="px-6 py-4 text-center text-xs text-red-500">
-                    Error al obtener datos: ${error.message}
-                </td>
-            </tr>`;
-        return;
-    }
-
-    // Filtrar para mantener únicamente el registro más reciente por cada DNI
-    const dnisVistos = new Set();
-    const pacientesUnicos = data.filter(paciente => {
-        if (!paciente.paciente_dni) return true;
-        if (dnisVistos.has(paciente.paciente_dni)) {
-            return false;
-        }
-        dnisVistos.add(paciente.paciente_dni);
-        return true;
-    });
-
-    totalFichasActivas.textContent = pacientesUnicos.length;
-    contadorResultados.textContent = `${Math.min(pacientesUnicos.length, 10)} fichas mostradas`;
-
-    renderTabla(pacientesUnicos.slice(0, 10));
-    cargarContadoresEstado(pacientesUnicos);
+    contadorResultados.textContent = '0 fichas mostradas';
 }
 
-// --- ACTUALIZAR MÉTRICAS / CHIPS POR ESTADO ---
+// --- ACTUALIZAR MÉTRICAS / CHIPS POR ESTADO DESDE RESULTADOS BÚSQUEDA ---
 function cargarContadoresEstado(pacientes) {
     if (!pacientes || pacientes.length === 0) {
         cantTratamiento.textContent = '0';
@@ -180,12 +148,12 @@ function cargarContadoresEstado(pacientes) {
     cantEgreso.textContent = egreso;
 }
 
-// --- BUSCADOR POR DNI EXACTO O NOMBRE ---
+// --- BUSCADOR POR DNI EXACTO O NOMBRE (SOLO AL PRESIONAR BUSCAR) ---
 btnBuscar.addEventListener('click', async () => {
     const query = document.getElementById('buscarDNI').value.trim();
 
     if (!query) {
-        cargarPacientesRecientes();
+        limpiarVistaInicial();
         return;
     }
 
@@ -198,11 +166,11 @@ btnBuscar.addEventListener('click', async () => {
 
     let consulta = supabaseClient.from('historias_clinicas').select('*');
 
-    // Si es numérico, busca únicamente por el DNI exacto
+    // Si es numérico, busca únicamente por DNI exacto
     if (!isNaN(query)) {
         consulta = consulta.eq('paciente_dni', query);
     } else {
-        // Si contiene texto, busca coincidencias parciales por nombre o apellido
+        // Si contiene texto, busca por coincidencias parciales en nombre o apellido
         consulta = consulta.or(`paciente_nombre.ilike.%${query}%,paciente_apellido.ilike.%${query}%`);
     }
 
@@ -218,8 +186,20 @@ btnBuscar.addEventListener('click', async () => {
         return;
     }
 
-    contadorResultados.textContent = `${data.length} resultados`;
-    renderTabla(data);
+    // Filtrar para mantener solo el registro más reciente por DNI
+    const dnisVistos = new Set();
+    const pacientesUnicos = data.filter(paciente => {
+        if (!paciente.paciente_dni) return true;
+        if (dnisVistos.has(paciente.paciente_dni)) {
+            return false;
+        }
+        dnisVistos.add(paciente.paciente_dni);
+        return true;
+    });
+
+    contadorResultados.textContent = `${pacientesUnicos.length} resultados`;
+    renderTabla(pacientesUnicos);
+    cargarContadoresEstado(pacientesUnicos);
 });
 
 
@@ -229,7 +209,7 @@ function renderTabla(registros) {
         tablaPacientesBody.innerHTML = `
             <tr>
                 <td colSpan="5" class="px-6 py-8 text-center text-xs text-amber-600">
-                    No se encontraron fichas clínicas asociadas.
+                    No se encontraron fichas clínicas asociadas a la búsqueda.
                 </td>
             </tr>`;
         return;
@@ -428,7 +408,6 @@ cambioEstadoRapido.addEventListener('change', async (e) => {
     } else {
         pacienteActual.estado_paciente = nuevoEstado;
         verFichaPaciente(pacienteActual.id);
-        cargarPacientesRecientes();
     }
 });
 
@@ -479,7 +458,6 @@ clinicalForm.addEventListener('submit', async (e) => {
         return;
     }
 
-    // Se convierte "" a null en campos opcionales/desplegables para evitar errores de CHECK constraint en Supabase
     const payload = {
         medico_id: user.id,
 
@@ -540,7 +518,7 @@ clinicalForm.addEventListener('submit', async (e) => {
         setTimeout(() => {
             formularioSection.classList.add('hidden');
             dashboardSection.classList.remove('hidden');
-            cargarPacientesRecientes();
+            limpiarVistaInicial();
         }, 1500);
     }
 });
