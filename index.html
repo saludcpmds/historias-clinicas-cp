@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dirección de Asistencia y Tratamiento</title>
+    <title>Dirección de Asistencia y Tratamiento - Corrientes</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Supabase JS Client -->
@@ -14,8 +14,8 @@
     <!-- LOGIN -->
     <div id="loginSection" class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md border-t-4 border-emerald-600">
         <div class="text-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-800">Dirección de Asistencia y Tratamiento</h1>
-            <p class="text-gray-500 text-sm">Historias Clínicas</p>
+            <h1 class="text-xl font-bold text-gray-900 leading-snug">Dirección de Asistencia y Tratamiento</h1>
+            <p class="text-gray-700 text-sm font-semibold">Corrientes - Historias Clínicas</p>
         </div>
         <form id="loginForm" class="space-y-4">
             <div>
@@ -32,10 +32,10 @@
     </div>
 
     <!-- SECCIÓN CLÍNICA (CARGA Y BÚSQUEDA) -->
-    <div id="clinicalSection" class="bg-white p-8 rounded-xl shadow-lg w-full max-w-3xl hidden border-t-4 border-emerald-600 space-y-8">
+    <div id="clinicalSection" class="bg-white p-8 rounded-xl shadow-lg w-full max-w-4xl hidden border-t-4 border-emerald-600 space-y-8 my-6">
         <div class="flex justify-between items-center border-b pb-4">
             <div>
-                <h2 class="text-xl font-bold text-gray-800">Registro de Pacientes</h2>
+                <h2 class="text-xl font-bold text-gray-900">Dirección de Asistencia y Tratamiento - Corrientes</h2>
                 <p id="userEmail" class="text-xs text-gray-500"></p>
             </div>
             <button id="logoutBtn" class="text-xs bg-red-500 text-white px-3 py-1.5 rounded hover:bg-red-600 transition">Cerrar Sesión</button>
@@ -51,37 +51,177 @@
             <div id="resultadoBusqueda" class="mt-4"></div>
         </div>
 
-        <!-- FORMULARIO DE CARGA DE HISTORIA CLÍNICA -->
+        <!-- FORMULARIO DE CARGA DE HISTORIA CLÍNICA Y EPIDEMIOLÓGICA -->
         <div class="border-t pt-6">
-            <h3 class="text-md font-semibold text-gray-700 mb-4">Nueva Historia Clínica</h3>
-            <form id="clinicalForm" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">DNI Paciente</label>
-                        <input type="text" id="pacienteDni" required class="mt-1 block w-full px-3 py-2 border rounded-md">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Nueva Historia Clínica y Registro Epidemiológico</h3>
+            <form id="clinicalForm" class="space-y-6">
+
+                <!-- BLOQUE 1: DATOS PACIENTE Y SOCIODEMOGRAFÍA -->
+                <div class="bg-emerald-50/50 p-4 rounded-lg border border-emerald-100 space-y-4">
+                    <h4 class="text-sm font-bold text-emerald-800 uppercase tracking-wide">1. Identificación y Sociodemografía</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">DNI Paciente *</label>
+                            <input type="text" id="pacienteDni" required class="mt-1 block w-full px-3 py-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Nombre *</label>
+                            <input type="text" id="pacienteNombre" required class="mt-1 block w-full px-3 py-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Apellido *</label>
+                            <input type="text" id="pacienteApellido" required class="mt-1 block w-full px-3 py-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Sexo</label>
+                            <select id="sexo" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                                <option value="">Seleccionar...</option>
+                                <option value="Masculino">Masculino</option>
+                                <option value="Femenino">Femenino</option>
+                                <option value="Otro">Otro / No consigna</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Edad</label>
+                            <input type="number" id="edad" placeholder="Ej: 25" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Municipio / Barrio</label>
+                            <input type="text" id="municipioBarrio" placeholder="Ej: Capital / Bañado Norte" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Nivel Educativo</label>
+                            <select id="nivelEducativo" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                                <option value="">Seleccionar...</option>
+                                <option value="Primario Incompleto">Primario Incompleto</option>
+                                <option value="Primario Completo">Primario Completo</option>
+                                <option value="Secundario Incompleto">Secundario Incompleto</option>
+                                <option value="Secundario Completo">Secundario Completo</option>
+                                <option value="Terciario/Universitario">Terciario/Universitario</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Situación Laboral</label>
+                            <input type="text" id="situacionLaboral" placeholder="Ej: Informal, Empleado, Desempleado" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Vivienda / Situación</label>
+                            <input type="text" id="viviendaSituacion" placeholder="Ej: Propia, Alquilada, En calle" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Nombre</label>
-                        <input type="text" id="pacienteNombre" required class="mt-1 block w-full px-3 py-2 border rounded-md">
+                </div>
+
+                <!-- BLOQUE 2: PATRONES DE CONSUMO Y SUSTANCIAS -->
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-4">
+                    <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wide">2. Patrones de Consumo y Sustancias</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Sustancia Principal Consumida</label>
+                            <select id="sustanciaPrincipal" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                                <option value="">Seleccionar...</option>
+                                <option value="Alcohol">Alcohol</option>
+                                <option value="Marihuana">Marihuana</option>
+                                <option value="Cocaína">Cocaína / Pasta base</option>
+                                <option value="Psicofármacos con receta">Psicofármacos con receta</option>
+                                <option value="Psicofármacos sin receta">Psicofármacos sin receta</option>
+                                <option value="Tabaco">Tabaco</option>
+                                <option value="Otras">Otras</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Edad de Inicio en el Consumo</label>
+                            <input type="number" id="edadInicio" placeholder="Ej: 14" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Frecuencia de Consumo</label>
+                            <select id="frecuenciaConsumo" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                                <option value="">Seleccionar...</option>
+                                <option value="Diario">Diario</option>
+                                <option value="Semanal">Semanal (fines de semana)</option>
+                                <option value="Mensual">Mensual</option>
+                                <option value="Ocasional">Ocasional</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Policonsumo Simultáneo</label>
+                            <select id="policonsumo" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                                <option value="No">No (Solo una sustancia)</option>
+                                <option value="Sí (Alcohol + Marihuana)">Sí (Alcohol + Marihuana)</option>
+                                <option value="Sí (Alcohol + Psicofármacos)">Sí (Alcohol + Psicofármacos)</option>
+                                <option value="Sí (Otras mezclas)">Sí (Otras mezclas)</option>
+                            </select>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Apellido</label>
-                        <input type="text" id="pacienteApellido" required class="mt-1 block w-full px-3 py-2 border rounded-md">
+                </div>
+
+                <!-- BLOQUE 3: CONTEXTO, MOTIVOS Y CUIDADO -->
+                <div class="bg-blue-50/40 p-4 rounded-lg border border-blue-100 space-y-4">
+                    <h4 class="text-sm font-bold text-blue-900 uppercase tracking-wide">3. Contexto, Motivos y Prácticas de Cuidado</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Lugar Habitual de Consumo</label>
+                            <input type="text" id="lugarConsumo" placeholder="Ej: Hogar, Vía pública, Eventos" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Red de Acompañamiento</label>
+                            <input type="text" id="redAcompanamiento" placeholder="Ej: Solo, Amigos, Pareja, Familia" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Motivos Declarados</label>
+                            <input type="text" id="motivosConsumo" placeholder="Ej: Afrontamiento, Placer, Estrés, Social" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Prácticas de Autocuidado</label>
+                            <input type="text" id="practicasCuidado" placeholder="Ej: Hidratación, Dosificación, Ninguna" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                        </div>
                     </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Motivo de Consulta</label>
-                    <textarea id="motivoConsulta" rows="2" required class="mt-1 block w-full px-3 py-2 border rounded-md"></textarea>
+
+                <!-- BLOQUE 4: ASISTENCIA Y CLINICA GENERAL -->
+                <div class="bg-purple-50/40 p-4 rounded-lg border border-purple-100 space-y-4">
+                    <h4 class="text-sm font-bold text-purple-900 uppercase tracking-wide">4. Asistencia, Red Territorial y Motivo Clínico</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Consultas Previas</label>
+                            <select id="consultasPrevias" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                                <option value="No">No</option>
+                                <option value="Sí (Ambulatorio)">Sí (Ambulatorio)</option>
+                                <option value="Sí (Internación)">Sí (Internación)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Atención Previa en Guardia</label>
+                            <select id="demandaGuardia" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                                <option value="No">No</option>
+                                <option value="Sí (Sobredosis / Coma etílico)">Sí (Sobredosis / Coma etílico)</option>
+                                <option value="Sí (Traumatismos / Intoxicación)">Sí (Traumatismos / Intoxicación)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Vinculación a Red / Programa</label>
+                            <input type="text" id="vinculacionRed" placeholder="Ej: CAAC, Centro Comunitario, Beca" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 border-t pt-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Motivo de Consulta Clínico *</label>
+                            <textarea id="motivoConsulta" rows="2" required class="mt-1 block w-full px-3 py-2 border rounded-md"></textarea>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Diagnóstico (CIE-11)</label>
+                                <input type="text" id="diagnosticoCie11" placeholder="Ej: 6C40 / CA40.0" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Observaciones Epidemiológicas / Subjetivas</label>
+                                <textarea id="observaciones" rows="2" class="mt-1 block w-full px-3 py-2 border rounded-md"></textarea>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Diagnóstico (CIE-11)</label>
-                    <input type="text" id="diagnosticoCie11" placeholder="Ej: CA40.0" class="mt-1 block w-full px-3 py-2 border rounded-md">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Observaciones Epidemiológicas</label>
-                    <textarea id="observaciones" rows="3" class="mt-1 block w-full px-3 py-2 border rounded-md"></textarea>
-                </div>
-                <button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded-md hover:bg-emerald-700 font-semibold transition">Guardar Historia Clínica</button>
+
+                <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-md hover:bg-emerald-700 font-bold text-lg transition">Guardar Historia Clínica Completa</button>
             </form>
             <p id="clinicalStatus" class="text-sm mt-3 text-center hidden"></p>
         </div>
