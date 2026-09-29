@@ -36,7 +36,7 @@ const SEARCH_LIMIT = 50;
  */
 const ADMIN_EMAILS = [
   'armandojara07@gmail.com',
-  'laurandreabenitez@gmail.com'
+  'epidemiologo@mds.corrientes.gov.ar'
 ];
 
 // --- INICIALIZACIÓN ---
@@ -74,8 +74,105 @@ function esAdministrador(user) {
 function actualizarUIAdmin() {
   const cont = document.getElementById('adminActions');
   if (!cont) return;
-  cont.classList.toggle('hidden', !esAdministrador(state.currentUser));
+  const esAdmin = esAdministrador(state.currentUser);
+  cont.classList.toggle('hidden', !esAdmin);
+  if (esAdmin) {
+    cargarAlertasSeguridad();
+  }
 }
+
+/**
+ * Carga en el panel admin las exportaciones con alerta de seguridad.
+ * Requiere política RLS de SELECT para admins sobre export_audit_log.
+ */
+async function cargarAlertasSeguridad() {
+  const lista = document.getElementById('listaAlertasSeguridad');
+  const badge = document.getElementById('badgeAlertasCount');
+  if (!lista) return;
+
+  if (!esAdministrador(state.currentUser)) {
+    lista.innerHTML = '';
+    if (badge) badge.textContent = '0';
+    return;
+  }
+
+  lista.innerHTML = '<p class="text-slate-500 text-center py-2">Cargando alertas...</p>';
+
+  try {
+    // Traer logs recientes; filtramos alerta en cliente por compatibilidad con JSON
+    const { data, error } = await supabaseClient
+      .from('export_audit_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
+
+    const alertas = (data || []).filter((row) => {
+      const meta = row.metadata || {};
+      return meta.alerta_seguridad === true || meta.alerta_seguridad === 'true';
+    });
+
+    if (badge) badge.textContent = String(alertas.length);
+
+    if (alertas.length === 0) {
+      lista.innerHTML =
+        '<p class="text-emerald-700 text-center py-3 font-medium">Sin alertas de seguridad recientes.</p>';
+      return;
+    }
+
+    lista.innerHTML = '';
+    const fragment = document.createDocumentFragment();
+
+    alertas.forEach((row) => {
+      const meta = row.metadata || {};
+      const fecha = row.created_at
+        ? new Date(row.created_at).toLocaleString('es-AR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        : '—';
+
+      const tipoLabel =
+        row.tipo === 'base_completa' ? 'Exportación masiva' : 'Ficha individual';
+      const quien = row.user_name || row.user_email || 'Usuario desconocido';
+      const motivo = row.motivo || 'Sin motivo';
+      const motivoAlerta = meta.alerta_motivo || (meta.fuera_de_horario ? 'Fuera de horario habitual' : 'Alerta registrada');
+      const cantidad = meta.cantidad_registros != null ? ` · ${meta.cantidad_registros} registros` : '';
+      const dni = row.paciente_dni ? ` · DNI ${row.paciente_dni}` : '';
+
+      const card = document.createElement('div');
+      card.className =
+        'rounded-xl border border-amber-200 bg-white px-3 py-2.5 shadow-sm';
+
+      const titulo = document.createElement('p');
+      titulo.className = 'font-semibold text-slate-800';
+      titulo.textContent = `${quien} — ${tipoLabel}${dni}${cantidad}`;
+
+      const detalle = document.createElement('p');
+      detalle.className = 'text-slate-600 mt-0.5';
+      detalle.textContent = `Motivo: ${motivo}`;
+
+      const metaLine = document.createElement('p');
+      metaLine.className = 'text-amber-800 mt-1 font-medium';
+      metaLine.textContent = `⚠ ${motivoAlerta} · ${fecha}`;
+
+      card.append(titulo, detalle, metaLine);
+      fragment.appendChild(card);
+    });
+
+    lista.appendChild(fragment);
+  } catch (err) {
+    console.error('[AlertasSeguridad]', err);
+    lista.innerHTML = `<p class="text-red-600 text-center py-2">No se pudieron cargar las alertas. Verifique RLS de export_audit_log.<br><span class="text-[10px]">${err.message || ''}</span></p>`;
+    if (badge) badge.textContent = '!';
+  }
+}
+
+
 
 // --- EVENTOS ---
 function inicializarEventos() {
@@ -170,9 +267,19 @@ function inicializarEventos() {
 
   document.getElementById('btnGuardarEntrada')?.addEventListener('click', guardarNuevaEntrada);
   document.getElementById('cambioEstadoRapido')?.addEventListener('change', actualizarEstadoRapido);
-  document.getElementById('btnExportarExcel')?.addEventListener('click', exportarFichaExcel);
+  document.getElementById('btnExportarExcel')?.addEventListener('click', abrirModalExportarFicha);
   document.getElementById('btnExportarTodo')?.addEventListener('click', exportarBaseCompleta);
+  document.getElementById('btnRefrescarAlertas')?.addEventListener('click', cargarAlertasSeguridad);
   document.getElementById('clinicalForm')?.addEventListener('submit', guardarHistoriaClinica);
+
+  // Modal de exportación individual
+  document.getElementById('btnCancelarExportModal')?.addEventListener('click', cerrarModalExportarFicha);
+  document.getElementById('modalExportarBackdrop')?.addEventListener('click', cerrarModalExportarFicha);
+  document.getElementById('btnConfirmarExportModal')?.addEventListener('click', confirmarExportarFicha);
+  document.getElementById('exportMotivo')?.addEventListener('change', (e) => {
+    const wrap = document.getElementById('exportMotivoOtroWrap');
+    if (wrap) wrap.classList.toggle('hidden', e.target.value !== 'Otro');
+  });
 }
 
 async function manejarLogin(e) {
@@ -657,7 +764,7 @@ async function actualizarEstadoRapido(e) {
   }
 }
 
-// --- EXPORT INDIVIDUAL ---
+// --- EXPORT INDIVIDUAL (reauth + motivo + auditoría) ---
 function sanitizarValorExcel(valor) {
   if (valor == null) return '';
   const str = String(valor);
@@ -667,41 +774,199 @@ function sanitizarValorExcel(valor) {
   return str;
 }
 
-function exportarFichaExcel() {
+function abrirModalExportarFicha() {
   if (!state.pacienteActual) {
     alert('No hay ninguna ficha activa para exportar.');
     return;
   }
+  if (!state.currentUser) {
+    alert('Sesión expirada. Inicie sesión nuevamente.');
+    mostrarLogin();
+    return;
+  }
 
-  const p = state.pacienteActual;
-  const datos = [
-    { Campo: 'DNI', Valor: sanitizarValorExcel(p.paciente_dni) },
-    { Campo: 'Nombre', Valor: sanitizarValorExcel(p.paciente_nombre) },
-    { Campo: 'Apellido', Valor: sanitizarValorExcel(p.paciente_apellido) },
-    { Campo: 'Estado', Valor: sanitizarValorExcel(p.estado_paciente) },
-    { Campo: 'Sexo', Valor: sanitizarValorExcel(p.sexo) },
-    { Campo: 'Edad', Valor: p.edad ?? '' },
-    { Campo: 'Grupo Etario', Valor: sanitizarValorExcel(p.grupo_etario) },
-    { Campo: 'Localidad', Valor: sanitizarValorExcel(p.localidad) },
-    { Campo: 'Barrio', Valor: sanitizarValorExcel(p.barrio_residencia) },
-    { Campo: 'Nivel Educativo', Valor: sanitizarValorExcel(p.nivel_educativo) },
-    { Campo: 'Situación Laboral', Valor: sanitizarValorExcel(p.situacion_laboral) },
-    { Campo: 'Sustancia Consumida', Valor: sanitizarValorExcel(p.sustancia_consumida) },
-    { Campo: 'Motivo de Consulta', Valor: sanitizarValorExcel(p.motivo_consulta) },
-    { Campo: 'Observaciones', Valor: sanitizarValorExcel(p.observaciones) },
-    {
-      Campo: 'Fecha de Registro',
-      Valor: p.created_at ? new Date(p.created_at).toLocaleString('es-AR') : ''
-    }
-  ];
+  const modal = document.getElementById('modalExportarFicha');
+  const err = document.getElementById('exportModalError');
+  const motivo = document.getElementById('exportMotivo');
+  const motivoOtro = document.getElementById('exportMotivoOtro');
+  const pass = document.getElementById('exportPassword');
+  const wrap = document.getElementById('exportMotivoOtroWrap');
 
-  const worksheet = XLSX.utils.json_to_sheet(datos);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Ficha Clínica');
-  XLSX.writeFile(workbook, `Ficha_${p.paciente_dni || 'Paciente'}.xlsx`);
+  if (err) {
+    err.classList.add('hidden');
+    err.textContent = '';
+  }
+  if (motivo) motivo.value = '';
+  if (motivoOtro) motivoOtro.value = '';
+  if (pass) pass.value = '';
+  if (wrap) wrap.classList.add('hidden');
+  if (modal) modal.classList.remove('hidden');
 }
 
-// --- EXPORTACIÓN MASIVA (SOLO ADMIN) ---
+function cerrarModalExportarFicha() {
+  document.getElementById('modalExportarFicha')?.classList.add('hidden');
+  const pass = document.getElementById('exportPassword');
+  if (pass) pass.value = '';
+}
+
+function obtenerMotivoExportacion() {
+  const motivo = document.getElementById('exportMotivo')?.value || '';
+  if (!motivo) return { ok: false, motivo: '', error: 'Seleccione el motivo de la exportación.' };
+  if (motivo === 'Otro') {
+    const detalle = document.getElementById('exportMotivoOtro')?.value?.trim() || '';
+    if (!detalle) return { ok: false, motivo: '', error: 'Detalle el motivo de la exportación.' };
+    return { ok: true, motivo: `Otro: ${detalle}` };
+  }
+  return { ok: true, motivo };
+}
+
+/**
+ * Registra la exportación en la tabla export_audit_log (Supabase).
+ * Si la tabla no existe, solo deja aviso en consola (no bloquea al profesional).
+ */
+async function registrarAuditoriaExportacion({
+  tipo,
+  historiaId,
+  pacienteDni,
+  motivo,
+  extra
+}) {
+  try {
+    const user = state.currentUser;
+    const payload = {
+      user_id: user?.id || null,
+      user_email: user?.email || null,
+      user_name: obtenerNombreProfesional(user),
+      tipo, // 'ficha_individual' | 'base_completa'
+      historia_id: historiaId || null,
+      paciente_dni: pacienteDni || null,
+      motivo: motivo || null,
+      metadata: {
+        user_agent: navigator.userAgent,
+        horario: new Date().toISOString(),
+        fuera_de_horario: esFueraDeHorarioHabitual(),
+        ...(extra || {})
+      }
+    };
+
+    const { error } = await supabaseClient.from('export_audit_log').insert([payload]);
+    if (error) {
+      console.warn('[Auditoría] No se pudo registrar el log (¿existe la tabla export_audit_log?):', error.message);
+    }
+  } catch (err) {
+    console.warn('[Auditoría] Error al registrar:', err);
+  }
+}
+
+function esFueraDeHorarioHabitual() {
+  const ahora = new Date();
+  const h = ahora.getHours();
+  const dia = ahora.getDay(); // 0=domingo
+  // Fuera de L-V 7:00–20:00 o fin de semana
+  if (dia === 0 || dia === 6) return true;
+  if (h < 7 || h >= 20) return true;
+  return false;
+}
+
+async function confirmarExportarFicha() {
+  const errEl = document.getElementById('exportModalError');
+  const showErr = (msg) => {
+    if (errEl) {
+      errEl.textContent = msg;
+      errEl.classList.remove('hidden');
+    }
+  };
+
+  if (!state.pacienteActual || !state.currentUser) {
+    showErr('Sesión o ficha no disponibles.');
+    return;
+  }
+
+  const { ok, motivo, error } = obtenerMotivoExportacion();
+  if (!ok) {
+    showErr(error);
+    return;
+  }
+
+  const password = document.getElementById('exportPassword')?.value || '';
+  if (!password) {
+    showErr('Ingrese su contraseña para confirmar.');
+    return;
+  }
+
+  const btn = document.getElementById('btnConfirmarExportModal');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Verificando...';
+  }
+
+  try {
+    // Reautenticación reforzada
+    const email = state.currentUser.email;
+    const { error: authError } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+    if (authError) {
+      showErr('Contraseña incorrecta. No se realizó la exportación.');
+      return;
+    }
+
+    // Generar Excel
+    const p = state.pacienteActual;
+    const datos = [
+      { Campo: 'DNI', Valor: sanitizarValorExcel(p.paciente_dni) },
+      { Campo: 'Nombre', Valor: sanitizarValorExcel(p.paciente_nombre) },
+      { Campo: 'Apellido', Valor: sanitizarValorExcel(p.paciente_apellido) },
+      { Campo: 'Estado', Valor: sanitizarValorExcel(p.estado_paciente) },
+      { Campo: 'Sexo', Valor: sanitizarValorExcel(p.sexo) },
+      { Campo: 'Edad', Valor: p.edad ?? '' },
+      { Campo: 'Grupo Etario', Valor: sanitizarValorExcel(p.grupo_etario) },
+      { Campo: 'Localidad', Valor: sanitizarValorExcel(p.localidad) },
+      { Campo: 'Barrio', Valor: sanitizarValorExcel(p.barrio_residencia) },
+      { Campo: 'Nivel Educativo', Valor: sanitizarValorExcel(p.nivel_educativo) },
+      { Campo: 'Situación Laboral', Valor: sanitizarValorExcel(p.situacion_laboral) },
+      { Campo: 'Sustancia Consumida', Valor: sanitizarValorExcel(p.sustancia_consumida) },
+      { Campo: 'Motivo de Consulta', Valor: sanitizarValorExcel(p.motivo_consulta) },
+      { Campo: 'Observaciones', Valor: sanitizarValorExcel(p.observaciones) },
+      {
+        Campo: 'Fecha de Registro',
+        Valor: p.created_at ? new Date(p.created_at).toLocaleString('es-AR') : ''
+      },
+      { Campo: 'Exportado por', Valor: obtenerNombreProfesional(state.currentUser) },
+      { Campo: 'Motivo exportación', Valor: motivo },
+      { Campo: 'Fecha exportación', Valor: new Date().toLocaleString('es-AR') }
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(datos);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Ficha Clínica');
+    XLSX.writeFile(workbook, `Ficha_${p.paciente_dni || 'Paciente'}.xlsx`);
+
+    // Auditoría (no bloquea si falla)
+    await registrarAuditoriaExportacion({
+      tipo: 'ficha_individual',
+      historiaId: p.id,
+      pacienteDni: p.paciente_dni,
+      motivo,
+      extra: {
+        alerta_seguridad: esFueraDeHorarioHabitual()
+      }
+    });
+
+    cerrarModalExportarFicha();
+  } catch (err) {
+    console.error('[ExportFicha]', err);
+    showErr(err.message || 'Error al exportar.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Confirmar y exportar';
+    }
+  }
+}
+
+// --- EXPORTACIÓN MASIVA (ADMIN: instantánea + auditoría) ---
 async function exportarBaseCompleta() {
   if (!esAdministrador(state.currentUser)) {
     alert('No tiene permisos de administrador para esta acción.');
@@ -714,6 +979,11 @@ async function exportarBaseCompleta() {
     btn.disabled = true;
     btn.textContent = 'Preparando exportación...';
   }
+
+  const fueraHorario = esFueraDeHorarioHabitual();
+  const motivoAdmin = fueraHorario
+    ? 'Exportación masiva administrativa (fuera de horario habitual — alerta de seguridad)'
+    : 'Exportación masiva administrativa';
 
   try {
     const PAGE_SIZE = 1000;
@@ -743,6 +1013,23 @@ async function exportarBaseCompleta() {
       alert('No hay registros para exportar.');
       return;
     }
+
+    // Auditoría inmediata (antes o junto al download)
+    await registrarAuditoriaExportacion({
+      tipo: 'base_completa',
+      historiaId: null,
+      pacienteDni: null,
+      motivo: motivoAdmin,
+      extra: {
+        cantidad_registros: todos.length,
+        alerta_seguridad: fueraHorario || todos.length > 100,
+        alerta_motivo: fueraHorario
+          ? 'Exportación fuera de horario habitual'
+          : todos.length > 100
+            ? 'Volumen elevado de registros'
+            : null
+      }
+    });
 
     const filas = todos.map((p) => ({
       ID: p.id,
@@ -794,7 +1081,11 @@ async function exportarBaseCompleta() {
     const fecha = new Date().toISOString().slice(0, 10);
     XLSX.writeFile(workbook, `Base_Historias_Clinicas_${fecha}.xlsx`);
 
-    alert(`Exportación completada: ${todos.length} registros.`);
+    let msg = `Exportación completada: ${todos.length} registros.`;
+    if (fueraHorario) {
+      msg += '\n\nAviso: la operación se realizó fuera del horario habitual y quedó registrada con alerta de seguridad.';
+    }
+    alert(msg);
   } catch (err) {
     console.error('[ExportMasivo]', err);
     alert('Error al exportar: ' + (err.message || 'Error desconocido'));
