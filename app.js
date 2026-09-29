@@ -49,6 +49,8 @@ const btnCancelarEntrada = document.getElementById('btnCancelarEntrada');
 const btnGuardarEntrada = document.getElementById('btnGuardarEntrada');
 const tipoEntrada = document.getElementById('tipoEntrada');
 const motivoEntrada = document.getElementById('motivoEntrada');
+const dispositivoEntrada = document.getElementById('dispositivoEntrada');
+const profesionalEntrada = document.getElementById('profesionalEntrada');
 const cambioEstadoRapido = document.getElementById('cambioEstadoRapido');
 const btnExportarExcel = document.getElementById('btnExportarExcel');
 
@@ -368,7 +370,9 @@ function cargarEvolucionesTimeline(paciente) {
         entradas = [{
             tipo: 'Ingreso',
             fecha: paciente.created_at,
-            motivo: paciente.motivo_consulta || 'Ingreso inicial registrado en el sistema.'
+            motivo: paciente.motivo_consulta || 'Ingreso inicial registrado en el sistema.',
+            dispositivo: 'N/I',
+            profesional: 'N/I'
         }];
     }
 
@@ -388,12 +392,16 @@ function cargarEvolucionesTimeline(paciente) {
             minute: '2-digit'
         });
 
+        const dispositivoTxt = item.dispositivo ? ` | <span class="font-semibold text-slate-600">Disp:</span> ${item.dispositivo}` : '';
+        const profesionalTxt = item.profesional ? ` | <span class="font-semibold text-slate-600">Prof:</span> ${item.profesional}` : '';
+
         timelineHTML += `
             <div class="relative pl-2">
                 <span class="absolute -left-[31px] top-1.5 h-3 w-3 rounded-full bg-sky-500 ring-4 ring-white"></span>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
                     <span class="font-bold text-xs uppercase tracking-wider text-sky-800">${item.tipo || 'Entrada'}</span>
                     <span class="font-mono text-xs text-slate-400">• ${fechaFormateada}</span>
+                    <span class="text-xs text-slate-500 font-mono">${dispositivoTxt}${profesionalTxt}</span>
                 </div>
                 <p class="text-sm text-slate-700 mt-1 font-medium">${item.motivo || 'Sin detalles'}</p>
             </div>
@@ -414,6 +422,8 @@ btnNuevaEntrada.addEventListener('click', () => {
 btnCancelarEntrada.addEventListener('click', () => {
     formNuevaEntrada.classList.add('hidden');
     motivoEntrada.value = '';
+    dispositivoEntrada.value = '';
+    profesionalEntrada.value = '';
 });
 
 btnGuardarEntrada.addEventListener('click', async () => {
@@ -428,13 +438,17 @@ btnGuardarEntrada.addEventListener('click', async () => {
     let evolucionesPrevias = pacienteActual.evoluciones_json || [{
         tipo: 'Ingreso',
         fecha: pacienteActual.created_at,
-        motivo: pacienteActual.motivo_consulta || 'Ingreso inicial registrado.'
+        motivo: pacienteActual.motivo_consulta || 'Ingreso inicial registrado.',
+        dispositivo: 'N/I',
+        profesional: 'N/I'
     }];
 
     const nuevaEntradaObj = {
         tipo: tipoEntrada.value,
         fecha: new Date().toISOString(),
-        motivo: motivo
+        motivo: motivo,
+        dispositivo: dispositivoEntrada.value.trim() || 'No especificado',
+        profesional: profesionalEntrada.value.trim() || 'No especificado'
     };
 
     evolucionesPrevias.push(nuevaEntradaObj);
@@ -450,6 +464,8 @@ btnGuardarEntrada.addEventListener('click', async () => {
         pacienteActual.evoluciones_json = evolucionesPrevias;
         cargarEvolucionesTimeline(pacienteActual);
         motivoEntrada.value = '';
+        dispositivoEntrada.value = '';
+        profesionalEntrada.value = '';
         formNuevaEntrada.classList.add('hidden');
     }
 });
