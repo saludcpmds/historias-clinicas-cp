@@ -36,7 +36,7 @@ const SEARCH_LIMIT = 50;
  */
 const ADMIN_EMAILS = [
   'armandojara07@gmail.com',
-  'epidemiologo@mds.corrientes.gov.ar'
+  'laurandreabenitez@gmail.com'
 ];
 
 // --- INICIALIZACIÓN ---
