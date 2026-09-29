@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIIS - Historias Clínicas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+
+    <!-- LOGIN -->
+    <div id="loginSection" class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md border-t-4 border-emerald-600">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">SIIS</h1>
+            <p class="text-gray-500 text-sm">Sistema Informático Integrado de Salud</p>
+        </div>
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Correo Electrónico</label>
+                <input type="email" id="loginEmail" value="armandojara07@gmail.com" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Contraseña</label>
+                <input type="password" id="loginPassword" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500">
+            </div>
+            <button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded-md hover:bg-emerald-700 font-semibold transition duration-200">Iniciar Sesión</button>
+        </form>
+        <p id="loginError" class="text-red-500 text-sm mt-3 text-center hidden"></p>
+    </div>
+
+    <!-- CARGA DE HISTORIA CLÍNICA -->
+    <div id="clinicalSection" class="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl hidden border-t-4 border-emerald-600">
+        <div class="flex justify-between items-center mb-6 border-b pb-4">
+            <div>
+                <h2 class="text-xl font-bold text-gray-800">Carga de Historia Clínica</h2>
+                <p id="userEmail" class="text-xs text-gray-500"></p>
+            </div>
+            <button id="logoutBtn" class="text-xs bg-red-500 text-white px-3 py-1.5 rounded hover:bg-red-600 transition">Cerrar Sesión</button>
+        </div>
+
+        <form id="clinicalForm" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">DNI Paciente</label>
+                    <input type="text" id="pacienteDni" required class="mt-1 block w-full px-3 py-2 border rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Nombre</label>
+                    <input type="text" id="pacienteNombre" required class="mt-1 block w-full px-3 py-2 border rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Apellido</label>
+                    <input type="text" id="pacienteApellido" required class="mt-1 block w-full px-3 py-2 border rounded-md">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Motivo de Consulta</label>
+                <textarea id="motivoConsulta" rows="2" required class="mt-1 block w-full px-3 py-2 border rounded-md"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Diagnóstico (CIE-11)</label>
+                <input type="text" id="diagnosticoCie11" placeholder="Ej: CA40.0" class="mt-1 block w-full px-3 py-2 border rounded-md">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Observaciones Epidemiológicas</label>
+                <textarea id="observaciones" rows="3" class="mt-1 block w-full px-3 py-2 border rounded-md"></textarea>
+            </div>
+            <button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded-md hover:bg-emerald-700 font-semibold transition">Guardar Historia Clínica</button>
+        </form>
+        <p id="clinicalStatus" class="text-sm mt-3 text-center hidden"></p>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
