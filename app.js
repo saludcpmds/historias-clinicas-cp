@@ -3,8 +3,12 @@ const SUPABASE_ANON_KEY = 'sb_publishable_yZ6dortEAFQ5ZwZUwwPhGg_i-OcYDqD';
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Referencias a Secciones Principales
 const loginSection = document.getElementById('loginSection');
-const clinicalSection = document.getElementById('clinicalSection');
+const dashboardSection = document.getElementById('dashboardSection');
+const formularioSection = document.getElementById('formularioSection');
+
+// Referencias a Formularios y Elementos de UI
 const loginForm = document.getElementById('loginForm');
 const clinicalForm = document.getElementById('clinicalForm');
 const loginError = document.getElementById('loginError');
@@ -12,6 +16,25 @@ const clinicalStatus = document.getElementById('clinicalStatus');
 const logoutBtn = document.getElementById('logoutBtn');
 const userEmailText = document.getElementById('userEmail');
 
+// Botones de Navegación del Dashboard / Formulario
+const btnNuevaFicha = document.getElementById('btnNuevaFicha');
+const btnVolverDashboard = document.getElementById('btnVolverDashboard');
+const btnBuscar = document.getElementById('btnBuscar');
+
+// Elementos de la Tabla / Métricas
+const tablaPacientesBody = document.getElementById('tablaPacientesBody');
+const totalFichasActivas = document.getElementById('totalFichasActivas');
+const contadorResultados = document.getElementById('contadorResultados');
+
+// --- INICIALIZACIÓN DE SESIÓN ---
+window.addEventListener('DOMContentLoaded', async () => {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+        mostrarDashboard(session.user);
+    }
+});
+
+// --- INICIO DE SESIÓN ---
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     loginError.classList.add('hidden');
@@ -25,22 +48,148 @@ loginForm.addEventListener('submit', async (e) => {
         loginError.textContent = 'Error: ' + error.message;
         loginError.classList.remove('hidden');
     } else {
-        mostrarPantallaClinica(data.user);
+        mostrarDashboard(data.user);
     }
 });
 
-function mostrarPantallaClinica(user) {
-    loginSection.classList.add('hidden');
-    clinicalSection.classList.remove('hidden');
-    userEmailText.textContent = `Profesional: ${user.email}`;
-}
-
+// --- CERRAR SESIÓN ---
 logoutBtn.addEventListener('click', async () => {
     await supabaseClient.auth.signOut();
     location.reload();
 });
 
-// GUARDAR HISTORIA CLÍNICA COMPLETA
+// --- NAVEGACIÓN Y VISTAS ---
+function mostrarDashboard(user) {
+    loginSection.classList.add('hidden');
+    formularioSection.classList.add('hidden');
+    dashboardSection.classList.remove('hidden');
+    userEmailText.textContent = `${user.email}`;
+    
+    // Cargar pacientes recientes
+    cargarPacientesRecientes();
+}
+
+btnNuevaFicha.addEventListener('click', () => {
+    dashboardSection.classList.add('hidden');
+    formularioSection.classList.remove('hidden');
+    clinicalStatus.classList.add('hidden');
+    clinicalForm.reset();
+});
+
+btnVolverDashboard.addEventListener('click', () => {
+    formularioSection.classList.add('hidden');
+    dashboardSection.classList.remove('hidden');
+    cargarPacientesRecientes();
+});
+
+// --- CARGAR HISTORIAS CLÍNICAS RECIENTES ---
+async function cargarPacientesRecientes() {
+    tablaPacientesBody.innerHTML = `
+        <tr>
+            <td colSpan="5" class="px-6 py-8 text-center text-xs text-slate-400">
+                Cargando registros recientes...
+            </td>
+        </tr>`;
+
+    const { data, error, count } = await supabaseClient
+        .from('historias_clinicas')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+    if (error) {
+        tablaPacientesBody.innerHTML = `
+            <tr>
+                <td colSpan="5" class="px-6 py-4 text-center text-xs text-red-500">
+                    Error al obtener datos: ${error.message}
+                </td>
+            </tr>`;
+        return;
+    }
+
+    // Actualizar Métrica y Contador
+    totalFichasActivas.textContent = count || data.length;
+    contadorResultados.textContent = `${data.length} fichas mostradas`;
+
+    renderTabla(data);
+}
+
+// --- BUSCADOR POR DNI O NOMBRE ---
+btnBuscar.addEventListener('click', async () => {
+    const query = document.getElementById('buscarDNI').value.trim();
+
+    if (!query) {
+        cargarPacientesRecientes();
+        return;
+    }
+
+    tablaPacientesBody.innerHTML = `
+        <tr>
+            <td colSpan="5" class="px-6 py-8 text-center text-xs text-slate-400">
+                Buscando registros...
+            </td>
+        </tr>`;
+
+    // Consulta que busca coincidencia exacta en DNI o parcial en Nombre/Apellido
+    const { data, error } = await supabaseClient
+        .from('historias_clinicas')
+        .select('*')
+        .or(`paciente_dni.ilike.%${query}%,paciente_nombre.ilike.%${query}%,paciente_apellido.ilike.%${query}%`)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        tablaPacientesBody.innerHTML = `
+            <tr>
+                <td colSpan="5" class="px-6 py-4 text-center text-xs text-red-500">
+                    Error al buscar: ${error.message}
+                </td>
+            </tr>`;
+        return;
+    }
+
+    contadorResultados.textContent = `${data.length} resultados`;
+    renderTabla(data);
+});
+
+// --- RENDERIZAR TABLA ---
+function renderTabla(registros) {
+    if (registros.length === 0) {
+        tablaPacientesBody.innerHTML = `
+            <tr>
+                <td colSpan="5" class="px-6 py-8 text-center text-xs text-amber-600">
+                    No se encontraron fichas clínicas asociadas.
+                </td>
+            </tr>`;
+        return;
+    }
+
+    let html = '';
+    registros.forEach(item => {
+        const fecha = new Date(item.created_at).toLocaleDateString('es-AR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+
+        html += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="px-6 py-4 font-mono font-bold text-slate-900">${item.paciente_dni || 'N/R'}</td>
+                <td class="px-6 py-4 font-semibold text-slate-800">${item.paciente_nombre || ''} ${item.paciente_apellido || ''}</td>
+                <td class="px-6 py-4 text-slate-600">${item.localidad || 'N/R'}</td>
+                <td class="px-6 py-4">
+                    <span class="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-700 border border-sky-200">
+                        ${item.sustancia_consumida || 'Sin especificar'}
+                    </span>
+                </td>
+                <td class="px-6 py-4 font-mono text-xs text-slate-500">${fecha}</td>
+            </tr>
+        `;
+    });
+
+    tablaPacientesBody.innerHTML = html;
+}
+
+// --- GUARDAR HISTORIA CLÍNICA COMPLETA ---
 clinicalForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     clinicalStatus.classList.add('hidden');
@@ -48,7 +197,7 @@ clinicalForm.addEventListener('submit', async (e) => {
     const { data: { user } } = await supabaseClient.auth.getUser();
 
     if (!user) {
-        alert('Sesión expirada.');
+        alert('Sesión expirada. Por favor inicie sesión nuevamente.');
         location.reload();
         return;
     }
@@ -103,66 +252,17 @@ clinicalForm.addEventListener('submit', async (e) => {
 
     if (error) {
         clinicalStatus.textContent = 'Error al guardar: ' + error.message;
-        clinicalStatus.className = 'text-sm mt-3 text-center text-red-500 font-semibold';
+        clinicalStatus.className = 'text-sm mt-3 text-center text-red-500 font-semibold block';
     } else {
         clinicalStatus.textContent = '¡Historia clínica guardada con éxito!';
-        clinicalStatus.className = 'text-sm mt-3 text-center text-emerald-600 font-bold';
+        clinicalStatus.className = 'text-sm mt-3 text-center text-emerald-600 font-bold block';
         clinicalForm.reset();
+
+        // Redirigir al panel tras 1.5 segundos
+        setTimeout(() => {
+            formularioSection.classList.add('hidden');
+            dashboardSection.classList.remove('hidden');
+            cargarPacientesRecientes();
+        }, 1500);
     }
-    clinicalStatus.classList.remove('hidden');
-});
-
-// BUSCADOR POR DNI EN SUPABASE
-document.getElementById('btnBuscar').addEventListener('click', async () => {
-    const dni = document.getElementById('buscarDNI').value.trim();
-    const resultadoDiv = document.getElementById('resultadoBusqueda');
-
-    if (!dni) {
-        resultadoDiv.innerHTML = '<p class="text-sm text-red-500">Por favor, ingrese un número de DNI.</p>';
-        return;
-    }
-
-    resultadoDiv.innerHTML = '<p class="text-sm text-gray-500">Buscando en la base de datos...</p>';
-
-    const { data, error } = await supabaseClient
-        .from('historias_clinicas')
-        .select('*')
-        .eq('paciente_dni', dni)
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        resultadoDiv.innerHTML = `<p class="text-sm text-red-500">Error al buscar: ${error.message}</p>`;
-        return;
-    }
-
-    if (data.length === 0) {
-        resultadoDiv.innerHTML = '<p class="text-sm text-amber-600">No se encontraron historias clínicas para ese DNI.</p>';
-        return;
-    }
-
-    let html = `<p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Registros Encontrados (${data.length}):</p>`;
-    data.forEach(item => {
-        const fecha = new Date(item.created_at).toLocaleString();
-        html += `
-            <div class="bg-white p-4 rounded-lg border border-gray-200 mb-3 text-sm space-y-2 shadow-sm">
-                <div class="flex justify-between text-xs text-gray-500 border-b pb-1">
-                    <span><strong>Fecha:</strong> ${fecha}</span>
-                    <span><strong>Localidad:</strong> ${item.localidad || 'N/R'}</span>
-                </div>
-                <p class="font-bold text-gray-800 text-base">${item.paciente_nombre} ${item.paciente_apellido} <span class="text-xs text-gray-500">(DNI: ${item.paciente_dni})</span></p>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs bg-slate-50 p-2 rounded border">
-                    <p><strong>Edad / Sexo:</strong> ${item.edad || 'N/R'} años / ${item.sexo || 'N/R'}</p>
-                    <p><strong>Grupo Etario:</strong> ${item.grupo_etario || 'N/R'}</p>
-                    <p><strong>Sustancia Consumida:</strong> ${item.sustancia_consumida || 'N/R'} (Inicio: ${item.edad_inicio || 'N/R'} años)</p>
-                    <p><strong>Frecuencia:</strong> ${item.frecuencia_uso || 'N/R'}</p>
-                </div>
-
-                <p><span class="font-semibold text-gray-700">Motivo Consulta:</span> ${item.motivo_consulta}</p>
-                <p><span class="font-semibold text-gray-700">Observaciones:</span> ${item.observaciones || 'Sin observaciones'}</p>
-            </div>
-        `;
-    });
-
-    resultadoDiv.innerHTML = html;
 });
