@@ -40,6 +40,7 @@ logoutBtn.addEventListener('click', async () => {
     location.reload();
 });
 
+// GUARDAR HISTORIA CLÍNICA
 clinicalForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     clinicalStatus.classList.add('hidden');
@@ -75,4 +76,51 @@ clinicalForm.addEventListener('submit', async (e) => {
         clinicalForm.reset();
     }
     clinicalStatus.classList.remove('hidden');
+});
+
+// BUSCADOR POR DNI EN SUPABASE
+document.getElementById('btnBuscar').addEventListener('click', async () => {
+    const dni = document.getElementById('buscarDNI').value.trim();
+    const resultadoDiv = document.getElementById('resultadoBusqueda');
+
+    if (!dni) {
+        resultadoDiv.innerHTML = '<p class="text-sm text-red-500">Por favor, ingrese un número de DNI.</p>';
+        return;
+    }
+
+    resultadoDiv.innerHTML = '<p class="text-sm text-gray-500">Buscando en la base de datos...</p>';
+
+    const { data, error } = await supabaseClient
+        .from('historias_clinicas')
+        .select('*')
+        .eq('paciente_dni', dni)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        resultadoDiv.innerHTML = `<p class="text-sm text-red-500">Error al buscar: ${error.message}</p>`;
+        return;
+    }
+
+    if (data.length === 0) {
+        resultadoDiv.innerHTML = '<p class="text-sm text-amber-600">No se encontraron historias clínicas para ese DNI.</p>';
+        return;
+    }
+
+    let html = `<p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Registros Encontrados (${data.length}):</p>`;
+    data.forEach(item => {
+        const fecha = new Date(item.created_at).toLocaleString();
+        html += `
+            <div class="bg-white p-3 rounded border border-gray-200 mb-2 text-sm space-y-1 shadow-sm">
+                <div class="flex justify-between text-xs text-gray-500 border-b pb-1">
+                    <span><strong>Fecha:</strong> ${fecha}</span>
+                    <span><strong>CIE-11:</strong> ${item.diagnostico_cie11 || 'N/A'}</span>
+                </div>
+                <p class="font-bold text-gray-800">${item.paciente_nombre} ${item.paciente_apellido} <span class="text-xs text-gray-500">(DNI: ${item.paciente_dni})</span></p>
+                <p><span class="font-semibold text-gray-700">Motivo:</span> ${item.motivo_consulta}</p>
+                <p><span class="font-semibold text-gray-700">Observaciones:</span> ${item.observaciones || 'Sin observaciones'}</p>
+            </div>
+        `;
+    });
+
+    resultadoDiv.innerHTML = html;
 });
