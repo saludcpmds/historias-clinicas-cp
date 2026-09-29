@@ -203,12 +203,14 @@
                 <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
                     <div class="flex justify-between items-center border-b border-slate-100 pb-4">
                         <h3 class="font-bold text-slate-800 text-base">Historial de ingresos y evoluciones</h3>
-                        <button id="btnNuevaEntrada" type="button" class="text-sky-600 hover:text-sky-700 text-xs font-bold uppercase tracking-wider transition">
-                            + Nueva entrada
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button id="btnNuevaEntrada" type="button" class="text-sky-600 hover:text-sky-700 text-xs font-bold uppercase tracking-wider transition">
+                                + Nueva entrada
+                            </button>
+                        </div>
                     </div>
 
-                    <!-- Formulario Desplegable para Nueva Entrada -->
+                    <!-- Formulario Desplegable para Nueva Entrada (Actualizado) -->
                     <div id="formNuevaEntrada" class="hidden bg-sky-50/50 p-4 rounded-xl border border-sky-200 space-y-3">
                         <h4 class="text-xs font-bold text-sky-800 uppercase">Registrar nueva entrada</h4>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -224,6 +226,19 @@
                                 <input type="text" id="motivoEntrada" placeholder="Ej. Presenta mejoría en su tratamiento..." class="mt-1 w-full text-xs p-2 border rounded-lg bg-white">
                             </div>
                         </div>
+
+                        <!-- Opciones de Dispositivo y Profesional a Cargo -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600">Dispositivo</label>
+                                <input type="text" id="dispositivoEntrada" placeholder="Ej. Unidad de contención" class="mt-1 w-full text-xs p-2 border rounded-lg bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600">Profesional a cargo (Apellido y Nombre)</label>
+                                <input type="text" id="profesionalEntrada" placeholder="Ej. Pérez Juan" class="mt-1 w-full text-xs p-2 border rounded-lg bg-white">
+                            </div>
+                        </div>
+
                         <div class="flex justify-end gap-2 pt-2">
                             <button id="btnCancelarEntrada" type="button" class="text-xs text-slate-500 px-3 py-1.5 rounded-lg border bg-white">Cancelar</button>
                             <button id="btnGuardarEntrada" type="button" class="text-xs text-white bg-sky-600 px-4 py-1.5 rounded-lg font-semibold hover:bg-sky-700">Guardar Entrada</button>
