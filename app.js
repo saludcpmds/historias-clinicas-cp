@@ -55,6 +55,24 @@ const cambioEstadoRapido = document.getElementById('cambioEstadoRapido');
 const btnExportarExcel = document.getElementById('btnExportarExcel');
 
 
+// --- FUNCIÓN AUXILIAR PARA OBTENER LA FIRMA DEL PROFESIONAL ---
+function obtenerNombreProfesional(user) {
+    if (!user) return 'No especificado';
+    
+    // Supabase devuelve el metadata en user.user_metadata
+    const meta = user.user_metadata;
+    
+    if (meta && meta.apellido && meta.nombre) {
+        return `${meta.apellido}, ${meta.nombre}`;
+    } else if (meta && meta.nombre) {
+        return meta.nombre;
+    }
+    
+    // Respaldo por si aún no se le cargó el metadata en Supabase
+    return user.email;
+}
+
+
 // --- INICIALIZACIÓN DE SESIÓN ---
 window.addEventListener('DOMContentLoaded', async () => {
     const { data: { session } } = await supabaseClient.auth.getSession();
@@ -95,7 +113,10 @@ function mostrarDashboard(user) {
     loginSection.classList.add('hidden');
     formularioSection.classList.add('hidden');
     dashboardSection.classList.remove('hidden');
-    userEmailText.textContent = `${user.email}`;
+    
+    // Muestra Nombre y Apellido si existen, de lo contrario el email
+    const nombreUsuario = obtenerNombreProfesional(user);
+    userEmailText.textContent = `${nombreUsuario}`;
     
     limpiarVistaInicial();
     cargarMetricasGlobales(); // Cargar siempre el conteo global total al entrar al dashboard
@@ -430,8 +451,14 @@ function cargarEvolucionesTimeline(paciente) {
 
 
 // --- AGREGAR NUEVA ENTRADA A LA FICHA (HISTORIAL) ---
-btnNuevaEntrada.addEventListener('click', () => {
+btnNuevaEntrada.addEventListener('click', async () => {
     formNuevaEntrada.classList.remove('hidden');
+    
+    // Autocompletar el campo Profesional con el nombre del usuario con sesión activa
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (user && profesionalEntrada) {
+        profesionalEntrada.value = obtenerNombreProfesional(user);
+    }
 });
 
 btnCancelarEntrada.addEventListener('click', () => {
