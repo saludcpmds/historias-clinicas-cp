@@ -16,6 +16,18 @@
             backdrop-filter: blur(12px);
             background-color: rgba(255, 255, 255, 0.85);
         }
+        /* Evitar selección/copia de datos de pacientes (disuasión, no seguridad real) */
+        #resultadoBusqueda,
+        #resultadoBusqueda table,
+        #tablaPacientesBody,
+        #tablaPacientesBody td,
+        #detalleFichaPaciente,
+        #timelineContenedor {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen font-sans text-slate-800 antialiased">
