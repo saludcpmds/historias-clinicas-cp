@@ -110,7 +110,7 @@ btnVolverDashboard.addEventListener('click', () => {
 });
 
 
-// --- CARGAR HISTORIAS CLÍNICAS RECIENTES Y CONTEO POR ESTADOS ---
+// --- CARGAR HISTORIAS CLÍNICAS RECIENTES (UNICAS POR DNI) Y CONTEO POR ESTADOS ---
 async function cargarPacientesRecientes() {
     tablaPacientesBody.innerHTML = `
         <tr>
@@ -119,11 +119,10 @@ async function cargarPacientesRecientes() {
             </td>
         </tr>`;
 
-    const { data, error, count } = await supabaseClient
+    const { data, error } = await supabaseClient
         .from('historias_clinicas')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .limit(10);
+        .select('*')
+        .order('created_at', { ascending: false });
 
     if (error) {
         tablaPacientesBody.innerHTML = `
@@ -135,20 +134,27 @@ async function cargarPacientesRecientes() {
         return;
     }
 
-    totalFichasActivas.textContent = count || data.length;
-    contadorResultados.textContent = `${data.length} fichas mostradas`;
+    // Filtrar para mantener únicamente el registro más reciente por cada DNI
+    const dnisVistos = new Set();
+    const pacientesUnicos = data.filter(paciente => {
+        if (!paciente.paciente_dni) return true;
+        if (dnisVistos.has(paciente.paciente_dni)) {
+            return false;
+        }
+        dnisVistos.add(paciente.paciente_dni);
+        return true;
+    });
 
-    renderTabla(data);
-    cargarContadoresEstado();
+    totalFichasActivas.textContent = pacientesUnicos.length;
+    contadorResultados.textContent = `${Math.min(pacientesUnicos.length, 10)} fichas mostradas`;
+
+    renderTabla(pacientesUnicos.slice(0, 10));
+    cargarContadoresEstado(pacientesUnicos);
 }
 
 // --- ACTUALIZAR MÉTRICAS / CHIPS POR ESTADO ---
-async function cargarContadoresEstado() {
-    const { data, error } = await supabaseClient
-        .from('historias_clinicas')
-        .select('estado_paciente');
-
-    if (error || !data) {
+function cargarContadoresEstado(pacientes) {
+    if (!pacientes || pacientes.length === 0) {
         cantTratamiento.textContent = '0';
         cantSeguimiento.textContent = '0';
         cantEgreso.textContent = '0';
@@ -159,7 +165,7 @@ async function cargarContadoresEstado() {
     let enSeguimiento = 0;
     let egreso = 0;
 
-    data.forEach(item => {
+    pacientes.forEach(item => {
         if (item.estado_paciente === 'en_seguimiento') {
             enSeguimiento++;
         } else if (item.estado_paciente === 'egreso') {
@@ -174,7 +180,7 @@ async function cargarContadoresEstado() {
     cantEgreso.textContent = egreso;
 }
 
-// --- BUSCADOR POR DNI O NOMBRE ---
+// --- BUSCADOR POR DNI EXACTO O NOMBRE ---
 btnBuscar.addEventListener('click', async () => {
     const query = document.getElementById('buscarDNI').value.trim();
 
@@ -190,11 +196,17 @@ btnBuscar.addEventListener('click', async () => {
             </td>
         </tr>`;
 
-    const { data, error } = await supabaseClient
-        .from('historias_clinicas')
-        .select('*')
-        .or(`paciente_dni.ilike.%${query}%,paciente_nombre.ilike.%${query}%,paciente_apellido.ilike.%${query}%`)
-        .order('created_at', { ascending: false });
+    let consulta = supabaseClient.from('historias_clinicas').select('*');
+
+    // Si es numérico, busca únicamente por el DNI exacto
+    if (!isNaN(query)) {
+        consulta = consulta.eq('paciente_dni', query);
+    } else {
+        // Si contiene texto, busca coincidencias parciales por nombre o apellido
+        consulta = consulta.or(`paciente_nombre.ilike.%${query}%,paciente_apellido.ilike.%${query}%`);
+    }
+
+    const { data, error } = await consulta.order('created_at', { ascending: false });
 
     if (error) {
         tablaPacientesBody.innerHTML = `
@@ -416,7 +428,6 @@ cambioEstadoRapido.addEventListener('change', async (e) => {
     } else {
         pacienteActual.estado_paciente = nuevoEstado;
         verFichaPaciente(pacienteActual.id);
-        cargarContadoresEstado();
         cargarPacientesRecientes();
     }
 });
