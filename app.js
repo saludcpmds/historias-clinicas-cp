@@ -21,10 +21,13 @@ const btnNuevaFicha = document.getElementById('btnNuevaFicha');
 const btnVolverDashboard = document.getElementById('btnVolverDashboard');
 const btnBuscar = document.getElementById('btnBuscar');
 
-// Elementos de la Tabla / Métricas
+// Elementos de la Tabla / Métricas / Chips
 const tablaPacientesBody = document.getElementById('tablaPacientesBody');
 const totalFichasActivas = document.getElementById('totalFichasActivas');
 const contadorResultados = document.getElementById('contadorResultados');
+const cantTratamiento = document.getElementById('cantTratamiento');
+const cantSeguimiento = document.getElementById('cantSeguimiento');
+const cantEgreso = document.getElementById('cantEgreso');
 
 // --- INICIALIZACIÓN DE SESIÓN ---
 window.addEventListener('DOMContentLoaded', async () => {
@@ -65,7 +68,7 @@ function mostrarDashboard(user) {
     dashboardSection.classList.remove('hidden');
     userEmailText.textContent = `${user.email}`;
     
-    // Cargar pacientes recientes
+    // Cargar pacientes recientes y métricas por estado
     cargarPacientesRecientes();
 }
 
@@ -82,15 +85,16 @@ btnVolverDashboard.addEventListener('click', () => {
     cargarPacientesRecientes();
 });
 
-// --- CARGAR HISTORIAS CLÍNICAS RECIENTES ---
+// --- CARGAR HISTORIAS CLÍNICAS RECIENTES Y CONTEO POR ESTADOS ---
 async function cargarPacientesRecientes() {
     tablaPacientesBody.innerHTML = `
         <tr>
-            <td colSpan="5" class="px-6 py-8 text-center text-xs text-slate-400">
+            <td colSpan="6" class="px-6 py-8 text-center text-xs text-slate-400">
                 Cargando registros recientes...
             </td>
         </tr>`;
 
+    // Carga de la lista principal
     const { data, error, count } = await supabaseClient
         .from('historias_clinicas')
         .select('*', { count: 'exact' })
@@ -100,18 +104,54 @@ async function cargarPacientesRecientes() {
     if (error) {
         tablaPacientesBody.innerHTML = `
             <tr>
-                <td colSpan="5" class="px-6 py-4 text-center text-xs text-red-500">
+                <td colSpan="6" class="px-6 py-4 text-center text-xs text-red-500">
                     Error al obtener datos: ${error.message}
                 </td>
             </tr>`;
         return;
     }
 
-    // Actualizar Métrica y Contador
+    // Actualizar Métrica General y Contador de Resultados
     totalFichasActivas.textContent = count || data.length;
     contadorResultados.textContent = `${data.length} fichas mostradas`;
 
     renderTabla(data);
+
+    // Calcular/Actualizar los chips contadores de estado
+    cargarContadoresEstado();
+}
+
+// --- ACTUALIZAR MÉTRICAS / CHIPS POR ESTADO ---
+async function cargarContadoresEstado() {
+    const { data, error } = await supabaseClient
+        .from('historias_clinicas')
+        .select('estado_paciente');
+
+    if (error || !data) {
+        cantTratamiento.textContent = '0';
+        cantSeguimiento.textContent = '0';
+        cantEgreso.textContent = '0';
+        return;
+    }
+
+    let enTratamiento = 0;
+    let enSeguimiento = 0;
+    let egreso = 0;
+
+    data.forEach(item => {
+        if (item.estado_paciente === 'en_seguimiento') {
+            enSeguimiento++;
+        } else if (item.estado_paciente === 'egreso') {
+            egreso++;
+        } else {
+            // Valor por defecto / 'en_tratamiento'
+            enTratamiento++;
+        }
+    });
+
+    cantTratamiento.textContent = enTratamiento;
+    cantSeguimiento.textContent = enSeguimiento;
+    cantEgreso.textContent = egreso;
 }
 
 // --- BUSCADOR POR DNI O NOMBRE ---
@@ -125,7 +165,7 @@ btnBuscar.addEventListener('click', async () => {
 
     tablaPacientesBody.innerHTML = `
         <tr>
-            <td colSpan="5" class="px-6 py-8 text-center text-xs text-slate-400">
+            <td colSpan="6" class="px-6 py-8 text-center text-xs text-slate-400">
                 Buscando registros...
             </td>
         </tr>`;
@@ -140,7 +180,7 @@ btnBuscar.addEventListener('click', async () => {
     if (error) {
         tablaPacientesBody.innerHTML = `
             <tr>
-                <td colSpan="5" class="px-6 py-4 text-center text-xs text-red-500">
+                <td colSpan="6" class="px-6 py-4 text-center text-xs text-red-500">
                     Error al buscar: ${error.message}
                 </td>
             </tr>`;
@@ -156,7 +196,7 @@ function renderTabla(registros) {
     if (registros.length === 0) {
         tablaPacientesBody.innerHTML = `
             <tr>
-                <td colSpan="5" class="px-6 py-8 text-center text-xs text-amber-600">
+                <td colSpan="6" class="px-6 py-8 text-center text-xs text-amber-600">
                     No se encontraron fichas clínicas asociadas.
                 </td>
             </tr>`;
@@ -171,10 +211,20 @@ function renderTabla(registros) {
             year: 'numeric'
         });
 
+        // Formato visual Badge según el estado del paciente
+        let estadoBadge = '<span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 border border-emerald-200"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>En tratamiento</span>';
+        
+        if (item.estado_paciente === 'en_seguimiento') {
+            estadoBadge = '<span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 border border-slate-300"><span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>En seguimiento</span>';
+        } else if (item.estado_paciente === 'egreso') {
+            estadoBadge = '<span class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 border border-amber-200"><span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>Egreso</span>';
+        }
+
         html += `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100">
                 <td class="px-6 py-4 font-mono font-bold text-slate-900">${item.paciente_dni || 'N/R'}</td>
                 <td class="px-6 py-4 font-semibold text-slate-800">${item.paciente_nombre || ''} ${item.paciente_apellido || ''}</td>
+                <td class="px-6 py-4">${estadoBadge}</td>
                 <td class="px-6 py-4 text-slate-600">${item.localidad || 'N/R'}</td>
                 <td class="px-6 py-4">
                     <span class="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-700 border border-sky-200">
@@ -209,6 +259,7 @@ clinicalForm.addEventListener('submit', async (e) => {
         paciente_dni: document.getElementById('pacienteDni').value,
         paciente_nombre: document.getElementById('pacienteNombre').value,
         paciente_apellido: document.getElementById('pacienteApellido').value,
+        estado_paciente: document.getElementById('estadoPaciente').value,
         sexo: document.getElementById('sexo').value,
         fecha_nacimiento: document.getElementById('fechaNacimiento').value || null,
         edad: document.getElementById('edad').value ? parseInt(document.getElementById('edad').value) : null,
