@@ -612,13 +612,14 @@ function cargarEvolucionesTimeline(paciente) {
   let entradas = paciente.evoluciones_json;
 
   if (!Array.isArray(entradas) || entradas.length === 0) {
+    // Fichas antiguas sin evoluciones_json
     entradas = [
       {
         tipo: 'Ingreso',
         fecha: paciente.created_at,
         motivo: paciente.motivo_consulta || 'Ingreso inicial registrado en el sistema.',
-        dispositivo: 'N/I',
-        profesional: 'N/I'
+        dispositivo: 'Admisión',
+        profesional: 'No registrado en el alta'
       }
     ];
   }
@@ -667,7 +668,7 @@ function cargarEvolucionesTimeline(paciente) {
     const metaSpan = document.createElement('span');
     metaSpan.className = 'text-xs text-slate-500 font-mono';
     const disp = item.dispositivo ? ` | Disp: ${item.dispositivo}` : '';
-    const prof = item.profesional ? ` | Prof: ${item.profesional}` : '';
+    const prof = item.profesional ? ` | Usuario: ${item.profesional}` : '';
     metaSpan.textContent = `${disp}${prof}`;
 
     headerDiv.append(tipoSpan, fechaSpan, metaSpan);
@@ -1232,11 +1233,23 @@ async function guardarHistoriaClinica(e) {
   try {
     let respuesta;
     if (state.pacienteActual?.id) {
+      // Actualización: no tocar evoluciones_json (se gestiona en guardarNuevaEntrada)
       respuesta = await supabaseClient
         .from('historias_clinicas')
         .update(payload)
         .eq('id', state.pacienteActual.id);
     } else {
+      // Alta nueva: registrar ingreso con el profesional logueado
+      const nombreProf = obtenerNombreProfesional(state.currentUser);
+      payload.evoluciones_json = [
+        {
+          tipo: 'Ingreso',
+          fecha: new Date().toISOString(),
+          motivo: payload.motivo_consulta || 'Ingreso inicial registrado en el sistema.',
+          dispositivo: 'Admisión',
+          profesional: nombreProf
+        }
+      ];
       respuesta = await supabaseClient.from('historias_clinicas').insert([payload]);
     }
 
