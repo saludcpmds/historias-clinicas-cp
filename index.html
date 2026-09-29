@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Security Header Content Security Policy (CSP) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.supabase.co; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:;">
+    
     <title>Dirección de Asistencia y Tratamiento - MDS</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -33,7 +36,7 @@
             <form id="loginForm" class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Correo Electrónico</label>
-                    <input type="email" id="loginEmail" value="armandojara07@gmail.com" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500">
+                    <input type="email" id="loginEmail" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Contraseña</label>
@@ -47,11 +50,8 @@
 
     <!-- 2. DASHBOARD / PANEL PRINCIPAL (OCULTO POR DEFECTO) -->
     <div id="dashboardSection" class="hidden min-h-screen pb-12">
-        <!-- Header Institucional De Punta a Punta -->
         <header class="w-full bg-[#A4C2E8] shadow-sm mb-6 font-['Barlow',sans-serif] sticky top-0 z-30">
             <div class="w-full flex items-center justify-between pr-4 sm:pr-6 h-16 sm:h-20 overflow-hidden">
-                
-                <!-- Secuencia Banner -->
                 <div class="flex items-center h-full gap-3 sm:gap-5">
                     <img src="baner-rojo.jpg" alt="Bloque Rojo" class="h-full w-auto object-cover flex-shrink-0">
                     <img src="banner-amarillo.png" alt="Bloque Amarillo" class="h-full w-auto object-cover flex-shrink-0 -ml-3 sm:-ml-5">
@@ -77,19 +77,16 @@
                     </div>
                 </div>
 
-                <!-- Usuario y Cierre de Sesión -->
                 <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                     <span id="userEmail" class="text-xs sm:text-sm font-medium text-slate-800 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-white/50"></span>
                     <button id="logoutBtn" type="button" class="text-xs sm:text-sm bg-red-500 hover:bg-red-600 text-white font-medium px-3 sm:px-4 py-1.5 rounded-lg shadow-sm transition-colors duration-150">
                         Salir
                     </button>
                 </div>
-
             </div>
         </header>
 
         <main class="mx-auto max-w-7xl px-6 space-y-6">
-            <!-- Banner Ficha Clínica -->
             <section class="relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-r from-sky-50/80 via-white to-sky-50/50 p-8 shadow-sm">
                 <div class="flex flex-wrap items-end justify-between gap-6">
                     <div>
@@ -109,10 +106,9 @@
                     </div>
                 </div>
 
-                <!-- Buscador + Botón Nueva Ficha -->
                 <div class="mt-6 flex flex-col sm:flex-row gap-3">
                     <div class="relative flex-1">
-                        <input type="text" id="buscarDNI" placeholder="Buscar por DNI o nombre — ej. 30.748.233" class="w-full rounded-xl border border-slate-200 bg-white py-3 pl-4 pr-4 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition">
+                        <input type="text" id="buscarDNI" placeholder="Buscar por DNI o nombre — ej. 30748233" class="w-full rounded-xl border border-slate-200 bg-white py-3 pl-4 pr-4 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition">
                     </div>
                     <button id="btnBuscar" type="button" class="bg-sky-600 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-sky-700 transition">
                         Buscar
@@ -122,20 +118,17 @@
                     </button>
                 </div>
 
-                <!-- Chips Contadores por Estado -->
                 <div class="mt-4 flex flex-wrap gap-2 text-xs">
                     <div class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 shadow-sm">
                         <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
                         <span id="cantTratamiento" class="font-bold text-slate-800">0</span>
                         <span class="text-slate-600">en tratamiento</span>
                     </div>
-
                     <div class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 shadow-sm">
                         <span class="h-2 w-2 rounded-full bg-slate-400"></span>
                         <span id="cantSeguimiento" class="font-bold text-slate-800">0</span>
                         <span class="text-slate-600">en seguimiento</span>
                     </div>
-
                     <div class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 shadow-sm">
                         <span class="h-2 w-2 rounded-full bg-amber-500"></span>
                         <span id="cantEgreso" class="font-bold text-slate-800">0</span>
@@ -144,7 +137,6 @@
                 </div>
             </section>
 
-            <!-- Tabla de Resultados de Búsqueda -->
             <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
                     <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Resultados de la búsqueda</h2>
@@ -163,8 +155,8 @@
                         </thead>
                         <tbody id="tablaPacientesBody" class="divide-y divide-slate-100 text-slate-700">
                             <tr>
-                                <td colSpan="5" class="px-6 py-8 text-center text-xs text-slate-400">
-                                    Cargando registros recientes...
+                                <td colspan="5" class="px-6 py-8 text-center text-xs text-slate-400">
+                                    Ingrese un DNI o Nombre en el buscador y presione "Buscar" para ver resultados.
                                 </td>
                             </tr>
                         </tbody>
@@ -172,9 +164,7 @@
                 </div>
             </section>
 
-            <!-- DETALLE DE FICHA DEL PACIENTE (OCULTO POR DEFECTO) -->
             <section id="detalleFichaPaciente" class="hidden bg-slate-50/50 rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
-                <!-- Header Ficha -->
                 <div class="flex items-center justify-between">
                     <div>
                         <p id="fichaDniHeader" class="font-mono text-xs font-bold text-slate-400 uppercase tracking-wider">FICHA - DNI ...</p>
@@ -183,7 +173,6 @@
                     <div id="fichaEstadoBadge"></div>
                 </div>
 
-                <!-- Tarjetas / Chips Contadores -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-sm">
                         <span id="cantIngresosFicha" class="text-3xl font-extrabold text-slate-900 block">0</span>
@@ -199,7 +188,6 @@
                     </div>
                 </div>
 
-                <!-- Historial de ingresos y evoluciones -->
                 <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
                     <div class="flex justify-between items-center border-b border-slate-100 pb-4">
                         <h3 class="font-bold text-slate-800 text-base">Historial de ingresos y evoluciones</h3>
@@ -210,7 +198,6 @@
                         </div>
                     </div>
 
-                    <!-- Formulario Desplegable para Nueva Entrada -->
                     <div id="formNuevaEntrada" class="hidden bg-sky-50/50 p-4 rounded-xl border border-sky-200 space-y-3">
                         <h4 class="text-xs font-bold text-sky-800 uppercase">Registrar nueva entrada</h4>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -227,14 +214,13 @@
                             </div>
                         </div>
 
-                        <!-- Opciones de Dispositivo y Profesional a Cargo -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                             <div>
                                 <label class="block text-xs font-medium text-slate-600">Dispositivo</label>
                                 <input type="text" id="dispositivoEntrada" placeholder="Ej. Unidad de contención" class="mt-1 w-full text-xs p-2 border rounded-lg bg-white">
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-slate-600">Profesional a cargo (Apellido y Nombre)</label>
+                                <label class="block text-xs font-medium text-slate-600">Profesional a cargo</label>
                                 <input type="text" id="profesionalEntrada" placeholder="Ej. Pérez Juan" class="mt-1 w-full text-xs p-2 border rounded-lg bg-white">
                             </div>
                         </div>
@@ -245,12 +231,8 @@
                         </div>
                     </div>
 
-                    <!-- Timeline Vertical -->
-                    <div id="timelineContenedor" class="relative border-l-2 border-sky-100 pl-6 space-y-6 ml-2">
-                        <!-- Se llena dinámicamente mediante JS -->
-                    </div>
+                    <div id="timelineContenedor" class="relative border-l-2 border-sky-100 pl-6 space-y-6 ml-2"></div>
 
-                    <!-- Pie Ficha: Cambiar Estado + Exportar -->
                     <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-100">
                         <select id="cambioEstadoRapido" class="w-full sm:w-64 text-sm font-semibold p-2.5 rounded-xl border border-slate-300 bg-white">
                             <option value="en_tratamiento">En tratamiento</option>
@@ -266,7 +248,7 @@
         </main>
     </div>
 
-    <!-- 3. FORMULARIO EPIDEMIOLÓGICO COMPLETO (OCULTO POR DEFECTO) -->
+    <!-- 3. FORMULARIO EPIDEMIOLÓGICO -->
     <div id="formularioSection" class="hidden min-h-screen py-8 px-4 flex justify-center">
         <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-5xl border-t-4 border-sky-600 space-y-8">
             <div class="flex justify-between items-center border-b pb-4">
@@ -280,11 +262,9 @@
             </div>
 
             <form id="clinicalForm" class="space-y-6">
-
-                <!-- BLOQUE 1: IDENTIFICACIÓN Y SOCIODEMOGRAFÍA -->
+                <!-- BLOQUE 1: IDENTIFICACIÓN -->
                 <div class="bg-sky-50/50 p-5 rounded-lg border border-sky-200 space-y-4">
                     <h4 class="text-sm font-bold text-sky-800 uppercase tracking-wide border-b border-sky-200 pb-2">1. Identificación y Sociodemografía</h4>
-                    
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">DNI *</label>
@@ -343,84 +323,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Localidad (Corrientes)</label>
-                            <select id="localidad" class="mt-1 block w-full px-3 py-2 border rounded-md">
-                                <option value="">Seleccionar localidad...</option>
-                                <option value="Alvear">Alvear</option>
-                                <option value="Bella Vista">Bella Vista</option>
-                                <option value="Berón de Astrada">Berón de Astrada</option>
-                                <option value="Bonpland">Bonpland</option>
-                                <option value="Caá Catí">Caá Catí</option>
-                                <option value="Cazadores Correntinos">Cazadores Correntinos</option>
-                                <option value="Cecilio Echavarría">Cecilio Echavarría</option>
-                                <option value="Chavarría">Chavarría</option>
-                                <option value="Ciudad de Corrientes">Ciudad de Corrientes</option>
-                                <option value="Colonia Carlos Pellegrini">Colonia Carlos Pellegrini</option>
-                                <option value="Colonia Carolina">Colonia Carolina</option>
-                                <option value="Colonia Libertad">Colonia Libertad</option>
-                                <option value="Colonia Liebig">Colonia Liebig</option>
-                                <option value="Colonia Pando">Colonia Pando</option>
-                                <option value="Colonia Santa Rosa">Colonia Santa Rosa</option>
-                                <option value="Concepción">Concepción</option>
-                                <option value="Cruz de los Milagros">Cruz de los Milagros</option>
-                                <option value="Curuzú Cuatiá">Curuzú Cuatiá</option>
-                                <option value="El Sombrero">El Sombrero</option>
-                                <option value="Empedrado">Empedrado</option>
-                                <option value="Esquina">Esquina</option>
-                                <option value="Estación Torrent">Estación Torrent</option>
-                                <option value="Felipe Yofré">Felipe Yofré</option>
-                                <option value="Garruchos">Garruchos</option>
-                                <option value="Gobernador Martínez">Gobernador Martínez</option>
-                                <option value="Gobernador Virasoro">Gobernador Virasoro</option>
-                                <option value="Goya">Goya</option>
-                                <option value="Guaviraví">Guaviraví</option>
-                                <option value="Herlitzka">Herlitzka</option>
-                                <option value="Itatí">Itatí</option>
-                                <option value="Itá Ibaté">Itá Ibaté</option>
-                                <option value="Ituzaingó">Ituzaingó</option>
-                                <option value="José Rafael Gómez">José Rafael Gómez</option>
-                                <option value="Juan Pujol">Juan Pujol</option>
-                                <option value="La Cruz">La Cruz</option>
-                                <option value="Laguna Brava">Laguna Brava</option>
-                                <option value="Lavalle">Lavalle</option>
-                                <option value="Lomas de Vallejos">Lomas de Vallejos</option>
-                                <option value="Loreto">Loreto</option>
-                                <option value="Manuel Derqui">Manuel Derqui</option>
-                                <option value="Mariano I. Loza">Mariano I. Loza</option>
-                                <option value="Mburucuyá">Mburucuyá</option>
-                                <option value="Mercedes">Mercedes</option>
-                                <option value="Mocoretá">Mocoretá</option>
-                                <option value="Monte Caseros">Monte Caseros</option>
-                                <option value="Nueve de Julio">Nueve de Julio</option>
-                                <option value="Pago de los Deseos">Pago de los Deseos</option>
-                                <option value="Palmar Grande">Palmar Grande</option>
-                                <option value="Parada Pucheta">Parada Pucheta</option>
-                                <option value="Paso de la Patria">Paso de la Patria</option>
-                                <option value="Paso de los Libres">Paso de los Libres</option>
-                                <option value="Pedro R. Fernández">Pedro R. Fernández</option>
-                                <option value="Perugorría">Perugorría</option>
-                                <option value="Pueblo Libertador">Pueblo Libertador</option>
-                                <option value="Ramada Paso">Ramada Paso</option>
-                                <option value="Riachuelo">Riachuelo</option>
-                                <option value="Saladas">Saladas</option>
-                                <option value="San Carlos">San Carlos</option>
-                                <option value="San Cosme">San Cosme</option>
-                                <option value="San Isidro">San Isidro</option>
-                                <option value="San Lorenzo">San Lorenzo</option>
-                                <option value="San Luis del Palmar">San Luis del Palmar</option>
-                                <option value="San Miguel">San Miguel</option>
-                                <option value="San Roque">San Roque</option>
-                                <option value="Santa Ana de los Guácaras">Santa Ana de los Guácaras</option>
-                                <option value="Santa Lucía">Santa Lucía</option>
-                                <option value="Santa Rosa">Santa Rosa</option>
-                                <option value="Santo Tomé">Santo Tomé</option>
-                                <option value="Sauce">Sauce</option>
-                                <option value="Tabay">Tabay</option>
-                                <option value="Tapebicuá">Tapebicuá</option>
-                                <option value="Tatacuá">Tatacuá</option>
-                                <option value="Tres de Abril">Tres de Abril</option>
-                                <option value="Villa Olivari">Villa Olivari</option>
-                                <option value="Yapeyú">Yapeyú</option>
-                            </select>
+                            <input type="text" id="localidad" placeholder="Localidad" class="mt-1 block w-full px-3 py-2 border rounded-md">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Barrio de Residencia</label>
@@ -428,9 +331,9 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Nivel Educativo Alcanzado</label>
+                            <label class="block text-sm font-medium text-gray-700">Nivel Educativo</label>
                             <select id="nivelEducativo" class="mt-1 block w-full px-3 py-2 border rounded-md">
                                 <option value="">Seleccionar...</option>
                                 <option value="Sin instrucción">Sin instrucción</option>
@@ -442,13 +345,12 @@
                                 <option value="Terciario o Universitario completo y más">Terciario o Universitario completo y más</option>
                             </select>
                         </div>
-
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Situación Laboral Actual</label>
+                            <label class="block text-sm font-medium text-gray-700">Situación Laboral</label>
                             <select id="situacionLaboral" class="mt-1 block w-full px-3 py-2 border rounded-md">
                                 <option value="">Seleccionar...</option>
-                                <option value="Trabajo a tiempo completo (mínimo 40 hs semanales)">Trabajo a tiempo completo (mínimo 40 hs semanales)</option>
-                                <option value="Trabajo a tiempo parcial (menos de 40 hs semanales)">Trabajo a tiempo parcial (menos de 40 hs semanales)</option>
+                                <option value="Trabajo a tiempo completo">Trabajo a tiempo completo</option>
+                                <option value="Trabajo a tiempo parcial">Trabajo a tiempo parcial</option>
                                 <option value="No trabajo, pero busco trabajo">No trabajo, pero busco trabajo</option>
                                 <option value="No trabajo y no busco trabajo">No trabajo y no busco trabajo</option>
                                 <option value="Otro">Otro</option>
@@ -487,11 +389,11 @@
                             <input type="number" id="habitacionesDormir" placeholder="Uso exclusivo" class="mt-1 block w-full px-3 py-2 border rounded-md">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Personas en la Vivienda</label>
+                            <label class="block text-sm font-medium text-gray-700">Personas en Vivienda</label>
                             <input type="number" id="personasVivienda" placeholder="Total personas" class="mt-1 block w-full px-3 py-2 border rounded-md">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Servicio Básico de Agua</label>
+                            <label class="block text-sm font-medium text-gray-700">Servicio Agua</label>
                             <select id="servicioAgua" class="mt-1 block w-full px-3 py-2 border rounded-md">
                                 <option value="">Seleccionar...</option>
                                 <option value="Red pública">Red pública</option>
@@ -500,7 +402,7 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Eliminación de Excretas</label>
+                            <label class="block text-sm font-medium text-gray-700">Excretas</label>
                             <select id="eliminacionExcretas" class="mt-1 block w-full px-3 py-2 border rounded-md">
                                 <option value="">Seleccionar...</option>
                                 <option value="Red pública (cloaca)">Red pública (cloaca)</option>
@@ -511,7 +413,7 @@
                     </div>
                 </div>
 
-                <!-- BLOQUE 2: PATRONES DE CONSUMO Y SUSTANCIAS -->
+                <!-- BLOQUE 2: CONSUMO -->
                 <div class="bg-slate-50 p-5 rounded-lg border border-slate-200 space-y-4">
                     <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wide border-b border-slate-200 pb-2">2. Patrones de Consumo y Sustancias</h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -531,7 +433,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Edad de Inicio</label>
-                            <input type="number" id="edadInicio" placeholder="Años al iniciar" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                            <input type="number" id="edadInicio" placeholder="Años" class="mt-1 block w-full px-3 py-2 border rounded-md">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Frecuencia de Uso</label>
@@ -554,7 +456,7 @@
                     </div>
                 </div>
 
-                <!-- BLOQUE 3: CONTEXTO, MOTIVOS Y CUIDADO -->
+                <!-- BLOQUE 3: CONTEXTO -->
                 <div class="bg-blue-50/40 p-5 rounded-lg border border-blue-200 space-y-4">
                     <h4 class="text-sm font-bold text-blue-900 uppercase tracking-wide border-b border-blue-200 pb-2">3. Contexto, Motivos y Prácticas de Cuidado</h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -562,14 +464,12 @@
                             <label class="block text-sm font-medium text-gray-700">Lugar Habitual de Consumo</label>
                             <select id="lugarConsumo" class="mt-1 block w-full px-3 py-2 border rounded-md">
                                 <option value="">Seleccionar...</option>
-                                <option value="Domicilio particular (propio o de terceros)">Domicilio particular (propio o de terceros)</option>
-                                <option value="Vía pública (calles, plazas, parques)">Vía pública (calles, plazas, parques)</option>
-                                <option value="Lugares de ocio, o eventos (boliches, bares, recitales, fiestas)">Lugares de ocio, o eventos (boliches, bares, recitales, fiestas)</option>
-                                <option value="Lugar de trabajo (entorno laboral)">Lugar de trabajo (entorno laboral)</option>
-                                <option value="Establecimiento educativo (escuela, universidad)">Establecimiento educativo (escuela, universidad)</option>
-                                <option value="Vehículos (propio, transporte público)">Vehículos (propio, transporte público)</option>
-                                <option value="Lugares deshabitados, descampados o construcciones abandonadas">Lugares deshabitados, descampados o construcciones abandonadas</option>
-                                <option value="No tengo un lugar fijo / Cualquier lugar">No tengo un lugar fijo / Cualquier lugar</option>
+                                <option value="Domicilio particular">Domicilio particular</option>
+                                <option value="Vía pública">Vía pública</option>
+                                <option value="Lugares de ocio o eventos">Lugares de ocio o eventos</option>
+                                <option value="Lugar de trabajo">Lugar de trabajo</option>
+                                <option value="Establecimiento educativo">Establecimiento educativo</option>
+                                <option value="Cualquier lugar">Cualquier lugar</option>
                             </select>
                         </div>
                         <div>
@@ -592,7 +492,7 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Aplicación de Pautas de Autocuidado</label>
+                            <label class="block text-sm font-medium text-gray-700">Pautas de Autocuidado</label>
                             <select id="pautasAutocuidado" class="mt-1 block w-full px-3 py-2 border rounded-md">
                                 <option value="">Seleccionar...</option>
                                 <option value="Hidratación">Hidratación</option>
@@ -603,7 +503,7 @@
                     </div>
                 </div>
 
-                <!-- BLOQUE 4: ASISTENCIA Y OBSERVACIONES -->
+                <!-- BLOQUE 4: ASISTENCIA -->
                 <div class="bg-purple-50/40 p-5 rounded-lg border border-purple-200 space-y-4">
                     <h4 class="text-sm font-bold text-purple-900 uppercase tracking-wide border-b border-purple-200 pb-2">4. Asistencia, Salud Mental y Red Territorial</h4>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -616,7 +516,7 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Atención Previa Guardia</label>
+                            <label class="block text-sm font-medium text-gray-700">Atención Guardia</label>
                             <select id="atencionGuardia" class="mt-1 block w-full px-3 py-2 border rounded-md">
                                 <option value="">Seleccionar...</option>
                                 <option value="SI">SI</option>
@@ -624,7 +524,7 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Atención Salud Mental</label>
+                            <label class="block text-sm font-medium text-gray-700">Salud Mental</label>
                             <select id="atencionSaludMental" class="mt-1 block w-full px-3 py-2 border rounded-md">
                                 <option value="">Seleccionar...</option>
                                 <option value="SI">SI</option>
@@ -644,15 +544,15 @@
                     <div class="grid grid-cols-1 gap-4 border-t border-purple-100 pt-3">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Vinculación a Red / Programa</label>
-                            <input type="text" id="vinculacionRed" placeholder="Descripción del programa o red" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                            <input type="text" id="vinculacionRed" placeholder="Descripción del programa" class="mt-1 block w-full px-3 py-2 border rounded-md">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Motivo de Consulta *</label>
-                            <textarea id="motivoConsulta" rows="2" required placeholder="Describa el motivo de consulta..." class="mt-1 block w-full px-3 py-2 border rounded-md"></textarea>
+                            <textarea id="motivoConsulta" rows="2" required placeholder="Describa el motivo..." class="mt-1 block w-full px-3 py-2 border rounded-md"></textarea>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Observaciones</label>
-                            <textarea id="observaciones" rows="3" placeholder="Observaciones adicionales..." class="mt-1 block w-full px-3 py-2 border rounded-md"></textarea>
+                            <textarea id="observaciones" rows="3" placeholder="Observaciones..." class="mt-1 block w-full px-3 py-2 border rounded-md"></textarea>
                         </div>
                     </div>
                 </div>
