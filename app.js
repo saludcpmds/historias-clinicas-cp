@@ -98,6 +98,7 @@ function mostrarDashboard(user) {
     userEmailText.textContent = `${user.email}`;
     
     limpiarVistaInicial();
+    cargarMetricasGlobales(); // Cargar siempre el conteo global total al entrar al dashboard
 }
 
 btnNuevaFicha.addEventListener('click', () => {
@@ -112,6 +113,7 @@ btnVolverDashboard.addEventListener('click', () => {
     formularioSection.classList.add('hidden');
     dashboardSection.classList.remove('hidden');
     limpiarVistaInicial();
+    cargarMetricasGlobales();
 });
 
 // --- VISTA INICIAL VACÍA ---
@@ -126,20 +128,31 @@ function limpiarVistaInicial() {
     detalleFichaPaciente.classList.add('hidden');
 }
 
-// --- ACTUALIZAR MÉTRICAS / CHIPS POR ESTADO DESDE RESULTADOS BÚSQUEDA ---
-function cargarContadoresEstado(pacientes) {
-    if (!pacientes || pacientes.length === 0) {
-        cantTratamiento.textContent = '0';
-        cantSeguimiento.textContent = '0';
-        cantEgreso.textContent = '0';
+// --- CARGAR MÉTRICAS GLOBALES REALES DESDE SUPABASE ---
+async function cargarMetricasGlobales() {
+    const { data, error } = await supabaseClient.from('historias_clinicas').select('paciente_dni, estado_paciente');
+
+    if (error || !data) {
+        console.error('Error al obtener métricas globales:', error);
         return;
     }
+
+    // Filtrar para considerar DNI únicos
+    const dnisVistos = new Set();
+    const pacientesUnicos = data.filter(item => {
+        if (!item.paciente_dni) return true;
+        if (dnisVistos.has(item.paciente_dni)) return false;
+        dnisVistos.add(item.paciente_dni);
+        return true;
+    });
+
+    totalFichasActivas.textContent = pacientesUnicos.length;
 
     let enTratamiento = 0;
     let enSeguimiento = 0;
     let egreso = 0;
 
-    pacientes.forEach(item => {
+    pacientesUnicos.forEach(item => {
         if (item.estado_paciente === 'en_seguimiento') {
             enSeguimiento++;
         } else if (item.estado_paciente === 'egreso') {
@@ -160,6 +173,7 @@ btnBuscar.addEventListener('click', async () => {
 
     if (!query) {
         limpiarVistaInicial();
+        cargarMetricasGlobales();
         return;
     }
 
@@ -202,7 +216,6 @@ btnBuscar.addEventListener('click', async () => {
 
     contadorResultados.textContent = `${pacientesUnicos.length} resultados`;
     renderTabla(pacientesUnicos);
-    cargarContadoresEstado(pacientesUnicos);
 });
 
 
@@ -253,7 +266,7 @@ function renderTabla(registros) {
 }
 
 
-// --- MOSTRAR HISTORIAL DEL PACIENTE Y AGREGAR BOTÓN DE VER/EDITAR FICHA ---
+// --- MOSTRAR HISTORIAL DEL PACIENTE ---
 async function verFichaPaciente(id) {
     const { data, error } = await supabaseClient
         .from('historias_clinicas')
@@ -487,6 +500,7 @@ cambioEstadoRapido.addEventListener('change', async (e) => {
     } else {
         pacienteActual.estado_paciente = nuevoEstado;
         verFichaPaciente(pacienteActual.id);
+        cargarMetricasGlobales(); // Actualizar el conteo global
     }
 });
 
@@ -604,6 +618,7 @@ clinicalForm.addEventListener('submit', async (e) => {
             formularioSection.classList.add('hidden');
             dashboardSection.classList.remove('hidden');
             limpiarVistaInicial();
+            cargarMetricasGlobales(); // Refrescar métricas globales tras guardar
         }, 1500);
     }
 });
