@@ -1,12 +1,9 @@
 /**
  * Ficha Clínica - Dirección de Asistencia y Tratamiento (MDS Corrientes)
- * Versión optimizada: XSS-safe, estado encapsulado, métricas paralelas,
- * sanitización Excel, búsqueda limitada y preparación para RPC atómica.
+ * Versión optimizada + rol administrador + exportación masiva.
  */
 
 // --- CONFIGURACIÓN ---
-// Inyectar window.ENV antes de cargar este script (ver index.html).
-// En producción NO dejar claves en el HTML; usar variables de entorno del servidor.
 const SUPABASE_URL = window.ENV?.SUPABASE_URL;
 const SUPABASE_ANON_KEY = window.ENV?.SUPABASE_ANON_KEY;
 
@@ -25,13 +22,22 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 });
 
-/** Estado centralizado de la aplicación */
+/** Estado centralizado */
 const state = {
   pacienteActual: null,
   currentUser: null
 };
 
 const SEARCH_LIMIT = 50;
+
+/**
+ * Emails con rol de administrador (epidemiología / exportación masiva).
+ * Reemplazá por los correos reales de los 1–2 administradores.
+ */
+const ADMIN_EMAILS = [
+  'armandojara07@gmail.com',
+  'epidemiologo@mds.corrientes.gov.ar'
+];
 
 // --- INICIALIZACIÓN ---
 window.addEventListener('DOMContentLoaded', async () => {
@@ -54,6 +60,22 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   asegurarBotonEditarFicha();
 });
+
+// --- ROLES ---
+function esAdministrador(user) {
+  if (!user?.email) return false;
+  if (ADMIN_EMAILS.map((e) => e.toLowerCase()).includes(user.email.toLowerCase())) {
+    return true;
+  }
+  if (user.user_metadata?.role === 'admin') return true;
+  return false;
+}
+
+function actualizarUIAdmin() {
+  const cont = document.getElementById('adminActions');
+  if (!cont) return;
+  cont.classList.toggle('hidden', !esAdministrador(state.currentUser));
+}
 
 // --- EVENTOS ---
 function inicializarEventos() {
@@ -90,7 +112,6 @@ function inicializarEventos() {
 
   document.getElementById('btnBuscar')?.addEventListener('click', ejecutarBusqueda);
 
-  // Enter en el buscador
   document.getElementById('buscarDNI')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -119,6 +140,7 @@ function inicializarEventos() {
   document.getElementById('btnGuardarEntrada')?.addEventListener('click', guardarNuevaEntrada);
   document.getElementById('cambioEstadoRapido')?.addEventListener('change', actualizarEstadoRapido);
   document.getElementById('btnExportarExcel')?.addEventListener('click', exportarFichaExcel);
+  document.getElementById('btnExportarTodo')?.addEventListener('click', exportarBaseCompleta);
   document.getElementById('clinicalForm')?.addEventListener('submit', guardarHistoriaClinica);
 }
 
@@ -173,6 +195,7 @@ function mostrarDashboard(user) {
 
   limpiarVistaInicial();
   cargarMetricasGlobales();
+  actualizarUIAdmin();
 }
 
 function obtenerNombreProfesional(user) {
@@ -237,7 +260,6 @@ async function ejecutarBusqueda() {
   const tbody = document.getElementById('tablaPacientesBody');
   const contador = document.getElementById('contadorResultados');
 
-  // Sanitizar: quitar wildcards SQL y limitar longitud
   const raw = (input?.value || '').trim();
   const query = raw.replace(/[%_]/g, '').slice(0, 100);
 
@@ -265,7 +287,6 @@ async function ejecutarBusqueda() {
       .order('created_at', { ascending: false })
       .limit(SEARCH_LIMIT);
 
-    // DNI solo dígitos (7 u 8 en Argentina)
     if (/^\d{7,8}$/.test(query)) {
       consulta = consulta.eq('paciente_dni', query);
     } else {
@@ -290,7 +311,6 @@ async function ejecutarBusqueda() {
       return;
     }
 
-    // Deduplicar por DNI (el más reciente ya viene primero por el order)
     const dnisVistos = new Set();
     const pacientesUnicos = (data || []).filter((p) => {
       if (!p.paciente_dni) return true;
@@ -316,7 +336,6 @@ async function ejecutarBusqueda() {
   }
 }
 
-/** Renderizado 100% XSS-safe con createElement + textContent */
 function renderTablaSegura(registros) {
   const tbody = document.getElementById('tablaPacientesBody');
   if (!tbody) return;
@@ -451,7 +470,6 @@ async function verFichaPaciente(id) {
   }
 }
 
-/** Timeline XSS-safe */
 function cargarEvolucionesTimeline(paciente) {
   let entradas = paciente.evoluciones_json;
 
@@ -529,7 +547,7 @@ function cargarEvolucionesTimeline(paciente) {
   contenedor.appendChild(fragment);
 }
 
-// --- EVOLUCIONES (RPC atómica + fallback controlado) ---
+// --- EVOLUCIONES ---
 async function guardarNuevaEntrada() {
   const motivo = document.getElementById('motivoEntrada')?.value?.trim();
   if (!motivo) {
@@ -550,17 +568,14 @@ async function guardarNuevaEntrada() {
   };
 
   try {
-    // Preferir RPC atómica (evita race conditions)
     const { error: rpcError } = await supabaseClient.rpc('agregar_evolucion', {
       p_historia_id: state.pacienteActual.id,
       p_nueva_entrada: nuevaEntrada
     });
 
     if (rpcError) {
-      // Fallback solo si la función aún no existe en el proyecto
       console.warn(
-        '[RPC] agregar_evolucion no disponible. Usando fallback UPDATE. ' +
-          'Cree la función SQL para evitar condiciones de carrera.',
+        '[RPC] agregar_evolucion no disponible. Usando fallback UPDATE.',
         rpcError.message
       );
 
@@ -611,7 +626,7 @@ async function actualizarEstadoRapido(e) {
   }
 }
 
-// --- EXPORT EXCEL (protección formula injection) ---
+// --- EXPORT INDIVIDUAL ---
 function sanitizarValorExcel(valor) {
   if (valor == null) return '';
   const str = String(valor);
@@ -653,6 +668,111 @@ function exportarFichaExcel() {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Ficha Clínica');
   XLSX.writeFile(workbook, `Ficha_${p.paciente_dni || 'Paciente'}.xlsx`);
+}
+
+// --- EXPORTACIÓN MASIVA (SOLO ADMIN) ---
+async function exportarBaseCompleta() {
+  if (!esAdministrador(state.currentUser)) {
+    alert('No tiene permisos de administrador para esta acción.');
+    return;
+  }
+
+  const btn = document.getElementById('btnExportarTodo');
+  const textoOriginal = btn?.textContent;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Preparando exportación...';
+  }
+
+  try {
+    const PAGE_SIZE = 1000;
+    let from = 0;
+    let todos = [];
+    let hayMas = true;
+
+    while (hayMas) {
+      const { data, error } = await supabaseClient
+        .from('historias_clinicas')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        hayMas = false;
+      } else {
+        todos = todos.concat(data);
+        from += PAGE_SIZE;
+        if (data.length < PAGE_SIZE) hayMas = false;
+      }
+    }
+
+    if (todos.length === 0) {
+      alert('No hay registros para exportar.');
+      return;
+    }
+
+    const filas = todos.map((p) => ({
+      ID: p.id,
+      DNI: sanitizarValorExcel(p.paciente_dni),
+      Nombre: sanitizarValorExcel(p.paciente_nombre),
+      Apellido: sanitizarValorExcel(p.paciente_apellido),
+      Estado: sanitizarValorExcel(p.estado_paciente),
+      Sexo: sanitizarValorExcel(p.sexo),
+      'Fecha Nacimiento': p.fecha_nacimiento || '',
+      Edad: p.edad ?? '',
+      'Grupo Etario': sanitizarValorExcel(p.grupo_etario),
+      Localidad: sanitizarValorExcel(p.localidad),
+      Barrio: sanitizarValorExcel(p.barrio_residencia),
+      'Nivel Educativo': sanitizarValorExcel(p.nivel_educativo),
+      'Situación Laboral': sanitizarValorExcel(p.situacion_laboral),
+      'Tipo Vivienda': sanitizarValorExcel(p.tipo_vivienda),
+      'Situación Habitacional': sanitizarValorExcel(p.situacion_habitacional),
+      'Habitaciones Dormir': p.habitaciones_dormir ?? '',
+      'Personas Vivienda': p.personas_vivienda ?? '',
+      'Servicio Agua': sanitizarValorExcel(p.servicio_agua),
+      'Eliminación Excretas': sanitizarValorExcel(p.eliminacion_excretas),
+      'Sustancia Consumida': sanitizarValorExcel(p.sustancia_consumida),
+      'Edad Inicio': p.edad_inicio ?? '',
+      'Frecuencia Uso': sanitizarValorExcel(p.frecuencia_uso),
+      Policonsumo: sanitizarValorExcel(p.policonsumo),
+      'Lugar Consumo': sanitizarValorExcel(p.lugar_consumo),
+      'Red Acompañamiento': sanitizarValorExcel(p.red_acompanamiento),
+      Motivos: sanitizarValorExcel(p.motivos),
+      'Pautas Autocuidado': sanitizarValorExcel(p.pautas_autocuidado),
+      'Consultas Previas': sanitizarValorExcel(p.consultas_previas),
+      'Atención Guardia': sanitizarValorExcel(p.atencion_guardia),
+      'Atención Salud Mental': sanitizarValorExcel(p.atencion_salud_mental),
+      Internaciones: sanitizarValorExcel(p.internaciones),
+      'Vinculación Red': sanitizarValorExcel(p.vinculacion_red),
+      'Motivo Consulta': sanitizarValorExcel(p.motivo_consulta),
+      Observaciones: sanitizarValorExcel(p.observaciones),
+      'Fecha Registro': p.created_at
+        ? new Date(p.created_at).toLocaleString('es-AR')
+        : '',
+      'Cant. Evoluciones': Array.isArray(p.evoluciones_json)
+        ? p.evoluciones_json.length
+        : 0
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(filas);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Historias Clínicas');
+
+    const fecha = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(workbook, `Base_Historias_Clinicas_${fecha}.xlsx`);
+
+    alert(`Exportación completada: ${todos.length} registros.`);
+  } catch (err) {
+    console.error('[ExportMasivo]', err);
+    alert('Error al exportar: ' + (err.message || 'Error desconocido'));
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = textoOriginal || '⬇ Exportar base completa (.xlsx)';
+    }
+  }
 }
 
 // --- EDICIÓN ---
@@ -778,7 +898,6 @@ async function guardarHistoriaClinica(e) {
     observaciones: getVal('observaciones')
   };
 
-  // Validación mínima de DNI
   if (payload.paciente_dni && !/^\d{7,8}$/.test(payload.paciente_dni)) {
     if (clinicalStatus) {
       clinicalStatus.textContent = 'El DNI debe contener 7 u 8 dígitos numéricos.';
