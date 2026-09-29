@@ -141,12 +141,34 @@
                     </div>
                 </div>
 
-                <div id="adminActions" class="mt-4 hidden">
-                    <button id="btnExportarTodo" type="button"
-                            class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition">
-                        <span>⬇ Exportar base completa (.xlsx)</span>
-                    </button>
-                    <p class="text-[10px] text-slate-500 mt-1">Solo visible para administradores / epidemiología</p>
+                <div id="adminActions" class="mt-4 hidden space-y-4">
+                    <div>
+                        <button id="btnExportarTodo" type="button"
+                                class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition">
+                            <span>⬇ Exportar base completa (.xlsx)</span>
+                        </button>
+                        <p class="text-[10px] text-slate-500 mt-1">Solo visible para administradores / epidemiología</p>
+                    </div>
+
+                    <!-- Panel de alertas de seguridad (auditoría) -->
+                    <div id="panelAlertasSeguridad" class="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 shadow-sm">
+                        <div class="flex items-center justify-between gap-3 mb-3">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-white text-xs font-bold" id="badgeAlertasCount">0</span>
+                                <h3 class="text-sm font-bold text-amber-900 uppercase tracking-wide">Alertas de seguridad</h3>
+                            </div>
+                            <button type="button" id="btnRefrescarAlertas"
+                                    class="text-[11px] font-semibold text-amber-800 hover:text-amber-950 underline">
+                                Actualizar
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-amber-800/80 mb-3">
+                            Exportaciones fuera de horario, de alto volumen o marcadas con alerta. Datos desde el log de auditoría.
+                        </p>
+                        <div id="listaAlertasSeguridad" class="space-y-2 max-h-64 overflow-y-auto text-xs">
+                            <p class="text-slate-500 text-center py-2">Cargando alertas...</p>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -686,6 +708,52 @@
                 </button>
             </form>
             <p id="clinicalStatus" class="text-sm mt-3 text-center hidden" role="status"></p>
+        </div>
+    </div>
+
+
+    <!-- Modal: Exportar ficha con reautenticación y motivo -->
+    <div id="modalExportarFicha" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" id="modalExportarBackdrop"></div>
+        <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md border border-slate-200 p-6 space-y-4 z-10">
+            <div>
+                <h3 class="text-lg font-bold text-slate-900">Exportar ficha clínica</h3>
+                <p class="text-xs text-slate-500 mt-1">Por seguridad y trazabilidad legal debe confirmar su identidad y el motivo de la exportación.</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700" for="exportMotivo">Motivo de la exportación *</label>
+                <select id="exportMotivo" class="mt-1 w-full text-sm p-2.5 border border-slate-300 rounded-lg bg-white">
+                    <option value="">Seleccionar motivo...</option>
+                    <option value="Solicitud directa del paciente">Solicitud directa del paciente</option>
+                    <option value="Transferencia a otro profesional">Transferencia a otro profesional</option>
+                    <option value="Requerimiento judicial">Requerimiento judicial</option>
+                    <option value="Continuidad de tratamiento">Continuidad de tratamiento</option>
+                    <option value="Auditoría institucional">Auditoría institucional</option>
+                    <option value="Otro">Otro (detallar abajo)</option>
+                </select>
+            </div>
+            <div id="exportMotivoOtroWrap" class="hidden">
+                <label class="block text-sm font-medium text-gray-700" for="exportMotivoOtro">Detalle del motivo *</label>
+                <textarea id="exportMotivoOtro" rows="2" maxlength="300" placeholder="Describa el motivo..."
+                          class="mt-1 w-full text-sm p-2.5 border border-slate-300 rounded-lg"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700" for="exportPassword">Confirme su contraseña *</label>
+                <input type="password" id="exportPassword" autocomplete="current-password"
+                       class="mt-1 w-full text-sm p-2.5 border border-slate-300 rounded-lg"
+                       placeholder="Reingrese su contraseña">
+            </div>
+            <p id="exportModalError" class="text-sm text-red-500 hidden" role="alert"></p>
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" id="btnCancelarExportModal"
+                        class="text-sm px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">
+                    Cancelar
+                </button>
+                <button type="button" id="btnConfirmarExportModal"
+                        class="text-sm px-4 py-2 rounded-lg bg-sky-600 text-white font-semibold hover:bg-sky-700">
+                    Confirmar y exportar
+                </button>
+            </div>
         </div>
     </div>
 
