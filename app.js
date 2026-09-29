@@ -3,168 +3,211 @@ const SUPABASE_ANON_KEY = 'sb_publishable_yZ6dortEAFQ5ZwZUwwPhGg_i-OcYDqD';
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Variable para almacenar el paciente que está actualmente en vista en la ficha
+// Variable global para almacenar la ficha activa
 let pacienteActual = null;
 
-// Referencias a Secciones Principales
-const loginSection = document.getElementById('loginSection');
-const dashboardSection = document.getElementById('dashboardSection');
-const formularioSection = document.getElementById('formularioSection');
-const detalleFichaPaciente = document.getElementById('detalleFichaPaciente');
-
-// Referencias a Formularios y Elementos de UI
-const loginForm = document.getElementById('loginForm');
-const clinicalForm = document.getElementById('clinicalForm');
-const loginError = document.getElementById('loginError');
-const clinicalStatus = document.getElementById('clinicalStatus');
-const logoutBtn = document.getElementById('logoutBtn');
-const userEmailText = document.getElementById('userEmail');
-
-// Botones de Navegación del Dashboard / Formulario
-const btnNuevaFicha = document.getElementById('btnNuevaFicha');
-const btnVolverDashboard = document.getElementById('btnVolverDashboard');
-const btnBuscar = document.getElementById('btnBuscar');
-
-// Elementos de la Tabla / Métricas / Chips Generales
-const tablaPacientesBody = document.getElementById('tablaPacientesBody');
-const totalFichasActivas = document.getElementById('totalFichasActivas');
-const contadorResultados = document.getElementById('contadorResultados');
-const cantTratamiento = document.getElementById('cantTratamiento');
-const cantSeguimiento = document.getElementById('cantSeguimiento');
-const cantEgreso = document.getElementById('cantEgreso');
-
-// Elementos de la Ficha Clínica Individual
-const fichaDniHeader = document.getElementById('fichaDniHeader');
-const fichaNombreHeader = document.getElementById('fichaNombreHeader');
-const fichaEstadoBadge = document.getElementById('fichaEstadoBadge');
-const cantIngresosFicha = document.getElementById('cantIngresosFicha');
-const cantEvolucionesFicha = document.getElementById('cantEvolucionesFicha');
-const cantDiasFicha = document.getElementById('cantDiasFicha');
-const timelineContenedor = document.getElementById('timelineContenedor');
-
-// Elementos de Formulario de Nueva Entrada / Acciones en Ficha
-const btnNuevaEntrada = document.getElementById('btnNuevaEntrada');
-const formNuevaEntrada = document.getElementById('formNuevaEntrada');
-const btnCancelarEntrada = document.getElementById('btnCancelarEntrada');
-const btnGuardarEntrada = document.getElementById('btnGuardarEntrada');
-const tipoEntrada = document.getElementById('tipoEntrada');
-const motivoEntrada = document.getElementById('motivoEntrada');
-const dispositivoEntrada = document.getElementById('dispositivoEntrada');
-const profesionalEntrada = document.getElementById('profesionalEntrada');
-const cambioEstadoRapido = document.getElementById('cambioEstadoRapido');
-const btnExportarExcel = document.getElementById('btnExportarExcel');
-
-
-// --- FUNCIÓN AUXILIAR PARA OBTENER EL NOMBRE DEL PROFESIONAL ---
-function obtenerNombreProfesional(user) {
-    if (!user) return 'No especificado';
-    const meta = user.user_metadata;
-    
-    if (meta && meta.apellido && meta.nombre) {
-        return `${meta.apellido}, ${meta.nombre}`;
-    } else if (meta && meta.nombre) {
-        return meta.nombre;
-    }
-    return user.email || 'No especificado';
-}
-
-
-// --- INICIALIZACIÓN DE SESIÓN Y VISTAS ---
+// --- INICIALIZACIÓN PRINCIPAL Y EVENTOS ---
 window.addEventListener('DOMContentLoaded', async () => {
+    // 1. Vincular eventos de forma segura una vez que el DOM esté disponible
+    inicializarEventos();
+
+    // 2. Verificar la sesión activa en Supabase
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session && session.user) {
             mostrarDashboard(session.user);
         } else {
-            // Si no hay sesión activa, ocultar todo salvo el login
-            if (loginSection) loginSection.classList.remove('hidden');
-            if (dashboardSection) dashboardSection.classList.add('hidden');
-            if (formularioSection) formularioSection.classList.add('hidden');
+            mostrarLogin();
         }
     } catch (err) {
-        console.error("Error al iniciar sesión:", err);
+        console.error("Error al obtener la sesión de usuario:", err);
+        mostrarLogin();
     }
-    
+
+    // 3. Crear el botón extra "Ver / Editar Ficha" si corresponde
     asegurarBotonEditarFicha();
 });
 
+// --- VINCULACIÓN SEGURA DE EVENTOS DE INTERFAZ ---
+function inicializarEventos() {
+    // Iniciar Sesión
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const loginError = document.getElementById('loginError');
+            if (loginError) loginError.classList.add('hidden');
 
-// --- INICIO DE SESIÓN ---
-if (loginForm) {
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (loginError) loginError.classList.add('hidden');
+            const email = document.getElementById('loginEmail')?.value;
+            const password = document.getElementById('loginPassword')?.value;
 
-        const email = document.getElementById('loginEmail')?.value;
-        const password = document.getElementById('loginPassword')?.value;
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-
-        if (error) {
-            if (loginError) {
-                loginError.textContent = 'Error: ' + error.message;
-                loginError.classList.remove('hidden');
+            if (error) {
+                if (loginError) {
+                    loginError.textContent = 'Error: ' + error.message;
+                    loginError.classList.remove('hidden');
+                }
+            } else if (data?.user) {
+                mostrarDashboard(data.user);
             }
-        } else if (data?.user) {
-            mostrarDashboard(data.user);
-        }
-    });
-}
-
-
-// --- CERRAR SESIÓN ---
-if (logoutBtn) {
-    logoutBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        try {
-            await supabaseClient.auth.signOut();
-        } catch (err) {
-            console.error('Error al cerrar sesión:', err);
-        } finally {
-            location.reload();
-        }
-    });
-}
-
-
-// --- CONTROL DE PANTALLAS (DASHBOARD Y FORMULARIO) ---
-function mostrarDashboard(user) {
-    if (loginSection) loginSection.classList.add('hidden');
-    if (formularioSection) formularioSection.classList.add('hidden'); // Oculta el formulario obligatoriamente
-    if (dashboardSection) dashboardSection.classList.remove('hidden'); // Muestra el dashboard
-    
-    const nombreUsuario = obtenerNombreProfesional(user);
-    if (userEmailText) {
-        userEmailText.textContent = nombreUsuario;
+        });
     }
-    
+
+    // Cerrar Sesión
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                await supabaseClient.auth.signOut();
+            } catch (err) {
+                console.error("Error al cerrar sesión:", err);
+            } finally {
+                mostrarLogin();
+                location.reload();
+            }
+        });
+    }
+
+    // Botón "+ Nueva Ficha"
+    const btnNuevaFicha = document.getElementById('btnNuevaFicha');
+    if (btnNuevaFicha) {
+        btnNuevaFicha.addEventListener('click', () => {
+            pacienteActual = null;
+            const dashboardSection = document.getElementById('dashboardSection');
+            const formularioSection = document.getElementById('formularioSection');
+            const clinicalForm = document.getElementById('clinicalForm');
+            const clinicalStatus = document.getElementById('clinicalStatus');
+
+            if (dashboardSection) dashboardSection.classList.add('hidden');
+            if (formularioSection) formularioSection.classList.remove('hidden');
+            if (clinicalStatus) clinicalStatus.classList.add('hidden');
+            if (clinicalForm) clinicalForm.reset();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+
+    // Volver al Dashboard
+    const btnVolverDashboard = document.getElementById('btnVolverDashboard');
+    if (btnVolverDashboard) {
+        btnVolverDashboard.addEventListener('click', () => {
+            const dashboardSection = document.getElementById('dashboardSection');
+            const formularioSection = document.getElementById('formularioSection');
+
+            if (formularioSection) formularioSection.classList.add('hidden');
+            if (dashboardSection) dashboardSection.classList.remove('hidden');
+            limpiarVistaInicial();
+            cargarMetricasGlobales();
+        });
+    }
+
+    // Buscar Paciente por DNI / Nombre
+    const btnBuscar = document.getElementById('btnBuscar');
+    if (btnBuscar) {
+        btnBuscar.addEventListener('click', ejecutarBusqueda);
+    }
+
+    // Desplegar Nueva Entrada en Timeline
+    const btnNuevaEntrada = document.getElementById('btnNuevaEntrada');
+    if (btnNuevaEntrada) {
+        btnNuevaEntrada.addEventListener('click', async () => {
+            const formNuevaEntrada = document.getElementById('formNuevaEntrada');
+            const profesionalEntrada = document.getElementById('profesionalEntrada');
+            if (formNuevaEntrada) formNuevaEntrada.classList.remove('hidden');
+
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (user && profesionalEntrada) {
+                profesionalEntrada.value = obtenerNombreProfesional(user);
+            }
+        });
+    }
+
+    // Cancelar Entrada
+    const btnCancelarEntrada = document.getElementById('btnCancelarEntrada');
+    if (btnCancelarEntrada) {
+        btnCancelarEntrada.addEventListener('click', () => {
+            const formNuevaEntrada = document.getElementById('formNuevaEntrada');
+            const motivoEntrada = document.getElementById('motivoEntrada');
+            const dispositivoEntrada = document.getElementById('dispositivoEntrada');
+            const profesionalEntrada = document.getElementById('profesionalEntrada');
+
+            if (formNuevaEntrada) formNuevaEntrada.classList.add('hidden');
+            if (motivoEntrada) motivoEntrada.value = '';
+            if (dispositivoEntrada) dispositivoEntrada.value = '';
+            if (profesionalEntrada) profesionalEntrada.value = '';
+        });
+    }
+
+    // Guardar Entrada
+    const btnGuardarEntrada = document.getElementById('btnGuardarEntrada');
+    if (btnGuardarEntrada) {
+        btnGuardarEntrada.addEventListener('click', guardarNuevaEntrada);
+    }
+
+    // Cambio de Estado Rápido
+    const cambioEstadoRapido = document.getElementById('cambioEstadoRapido');
+    if (cambioEstadoRapido) {
+        cambioEstadoRapido.addEventListener('change', actualizarEstadoRapido);
+    }
+
+    // Exportar Ficha a Excel
+    const btnExportarExcel = document.getElementById('btnExportarExcel');
+    if (btnExportarExcel) {
+        btnExportarExcel.addEventListener('click', exportarFichaExcel);
+    }
+
+    // Guardar Formulario Clínico
+    const clinicalForm = document.getElementById('clinicalForm');
+    if (clinicalForm) {
+        clinicalForm.addEventListener('submit', guardarHistoriaClinica);
+    }
+}
+
+// --- VISIBILIDAD DE VISTAS ---
+function mostrarLogin() {
+    const loginSection = document.getElementById('loginSection');
+    const dashboardSection = document.getElementById('dashboardSection');
+    const formularioSection = document.getElementById('formularioSection');
+    const detalleFicha = document.getElementById('detalleFichaPaciente');
+
+    if (loginSection) loginSection.classList.remove('hidden');
+    if (dashboardSection) dashboardSection.classList.add('hidden');
+    if (formularioSection) formularioSection.classList.add('hidden');
+    if (detalleFicha) detalleFicha.classList.add('hidden');
+}
+
+function mostrarDashboard(user) {
+    const loginSection = document.getElementById('loginSection');
+    const dashboardSection = document.getElementById('dashboardSection');
+    const formularioSection = document.getElementById('formularioSection');
+    const userEmailText = document.getElementById('userEmail');
+
+    if (loginSection) loginSection.classList.add('hidden');
+    if (formularioSection) formularioSection.classList.add('hidden');
+    if (dashboardSection) dashboardSection.classList.remove('hidden');
+
+    if (userEmailText) {
+        userEmailText.textContent = obtenerNombreProfesional(user);
+    }
+
     limpiarVistaInicial();
     cargarMetricasGlobales();
 }
 
-if (btnNuevaFicha) {
-    btnNuevaFicha.addEventListener('click', () => {
-        pacienteActual = null;
-        if (dashboardSection) dashboardSection.classList.add('hidden'); // Oculta dashboard
-        if (formularioSection) formularioSection.classList.remove('hidden'); // Muestra formulario
-        if (clinicalStatus) clinicalStatus.classList.add('hidden');
-        if (clinicalForm) clinicalForm.reset();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+function obtenerNombreProfesional(user) {
+    if (!user) return 'No especificado';
+    const meta = user.user_metadata;
+    if (meta && meta.apellido && meta.nombre) return `${meta.apellido}, ${meta.nombre}`;
+    if (meta && meta.nombre) return meta.nombre;
+    return user.email || 'No especificado';
 }
 
-if (btnVolverDashboard) {
-    btnVolverDashboard.addEventListener('click', () => {
-        if (formularioSection) formularioSection.classList.add('hidden'); // Oculta formulario
-        if (dashboardSection) dashboardSection.classList.remove('hidden'); // Muestra dashboard
-        limpiarVistaInicial();
-        cargarMetricasGlobales();
-    });
-}
-
-
-// --- VISTA INICIAL VACÍA ---
 function limpiarVistaInicial() {
+    const tablaPacientesBody = document.getElementById('tablaPacientesBody');
+    const contadorResultados = document.getElementById('contadorResultados');
+    const detalleFichaPaciente = document.getElementById('detalleFichaPaciente');
+
     if (tablaPacientesBody) {
         tablaPacientesBody.innerHTML = `
             <tr>
@@ -177,37 +220,24 @@ function limpiarVistaInicial() {
     if (detalleFichaPaciente) detalleFichaPaciente.classList.add('hidden');
 }
 
-
-// --- CARGAR MÉTRICAS GLOBALES REALES DESDE SUPABASE ---
+// --- MÉTRICAS Y CONSULTAS ---
 async function cargarMetricasGlobales() {
     try {
-        const { count: total, error: errTotal } = await supabaseClient
-            .from('historias_clinicas')
-            .select('*', { count: 'exact', head: true });
+        const totalFichasActivas = document.getElementById('totalFichasActivas');
+        const cantTratamiento = document.getElementById('cantTratamiento');
+        const cantSeguimiento = document.getElementById('cantSeguimiento');
+        const cantEgreso = document.getElementById('cantEgreso');
 
-        if (!errTotal && total !== null && totalFichasActivas) {
-            totalFichasActivas.textContent = total;
-        }
+        const { count: total } = await supabaseClient.from('historias_clinicas').select('*', { count: 'exact', head: true });
+        if (totalFichasActivas) totalFichasActivas.textContent = total || 0;
 
-        const { count: countTratamiento } = await supabaseClient
-            .from('historias_clinicas')
-            .select('*', { count: 'exact', head: true })
-            .or('estado_paciente.eq.en_tratamiento,estado_paciente.is.null');
-
+        const { count: countTratamiento } = await supabaseClient.from('historias_clinicas').select('*', { count: 'exact', head: true }).or('estado_paciente.eq.en_tratamiento,estado_paciente.is.null');
         if (cantTratamiento) cantTratamiento.textContent = countTratamiento || 0;
 
-        const { count: countSeguimiento } = await supabaseClient
-            .from('historias_clinicas')
-            .select('*', { count: 'exact', head: true })
-            .eq('estado_paciente', 'en_seguimiento');
-
+        const { count: countSeguimiento } = await supabaseClient.from('historias_clinicas').select('*', { count: 'exact', head: true }).eq('estado_paciente', 'en_seguimiento');
         if (cantSeguimiento) cantSeguimiento.textContent = countSeguimiento || 0;
 
-        const { count: countEgreso } = await supabaseClient
-            .from('historias_clinicas')
-            .select('*', { count: 'exact', head: true })
-            .eq('estado_paciente', 'egreso');
-
+        const { count: countEgreso } = await supabaseClient.from('historias_clinicas').select('*', { count: 'exact', head: true }).eq('estado_paciente', 'egreso');
         if (cantEgreso) cantEgreso.textContent = countEgreso || 0;
 
     } catch (err) {
@@ -215,90 +245,70 @@ async function cargarMetricasGlobales() {
     }
 }
 
+async function ejecutarBusqueda() {
+    const inputBuscar = document.getElementById('buscarDNI');
+    const tablaPacientesBody = document.getElementById('tablaPacientesBody');
+    const contadorResultados = document.getElementById('contadorResultados');
+    const query = inputBuscar ? inputBuscar.value.trim() : '';
 
-// --- BUSCADOR POR DNI EXACTO O NOMBRE ---
-if (btnBuscar) {
-    btnBuscar.addEventListener('click', async () => {
-        const inputBuscar = document.getElementById('buscarDNI');
-        const query = inputBuscar ? inputBuscar.value.trim() : '';
+    if (!query) {
+        limpiarVistaInicial();
+        cargarMetricasGlobales();
+        return;
+    }
 
-        if (!query) {
-            limpiarVistaInicial();
-            cargarMetricasGlobales();
-            return;
-        }
+    if (tablaPacientesBody) {
+        tablaPacientesBody.innerHTML = `
+            <tr>
+                <td colSpan="5" class="px-6 py-8 text-center text-xs text-slate-400">
+                    Buscando registros...
+                </td>
+            </tr>`;
+    }
 
+    let consulta = supabaseClient.from('historias_clinicas').select('*');
+
+    if (!isNaN(query)) {
+        consulta = consulta.eq('paciente_dni', query);
+    } else {
+        consulta = consulta.or(`paciente_nombre.ilike.%${query}%,paciente_apellido.ilike.%${query}%`);
+    }
+
+    const { data, error } = await consulta.order('created_at', { ascending: false });
+
+    if (error) {
         if (tablaPacientesBody) {
-            tablaPacientesBody.innerHTML = `
-                <tr>
-                    <td colSpan="5" class="px-6 py-8 text-center text-xs text-slate-400">
-                        Buscando registros...
-                    </td>
-                </tr>`;
+            tablaPacientesBody.innerHTML = `<tr><td colSpan="5" class="px-6 py-4 text-center text-xs text-red-500">Error: ${error.message}</td></tr>`;
         }
+        return;
+    }
 
-        let consulta = supabaseClient.from('historias_clinicas').select('*');
-
-        if (!isNaN(query)) {
-            consulta = consulta.eq('paciente_dni', query);
-        } else {
-            consulta = consulta.or(`paciente_nombre.ilike.%${query}%,paciente_apellido.ilike.%${query}%`);
-        }
-
-        const { data, error } = await consulta.order('created_at', { ascending: false });
-
-        if (error) {
-            if (tablaPacientesBody) {
-                tablaPacientesBody.innerHTML = `
-                    <tr>
-                        <td colSpan="5" class="px-6 py-4 text-center text-xs text-red-500">
-                            Error al buscar: ${error.message}
-                        </td>
-                    </tr>`;
-            }
-            return;
-        }
-
-        const dnisVistos = new Set();
-        const pacientesUnicos = (data || []).filter(paciente => {
-            if (!paciente.paciente_dni) return true;
-            if (dnisVistos.has(paciente.paciente_dni)) {
-                return false;
-            }
-            dnisVistos.add(paciente.paciente_dni);
-            return true;
-        });
-
-        if (contadorResultados) contadorResultados.textContent = `${pacientesUnicos.length} resultados`;
-        renderTabla(pacientesUnicos);
+    const dnisVistos = new Set();
+    const pacientesUnicos = (data || []).filter(paciente => {
+        if (!paciente.paciente_dni) return true;
+        if (dnisVistos.has(paciente.paciente_dni)) return false;
+        dnisVistos.add(paciente.paciente_dni);
+        return true;
     });
+
+    if (contadorResultados) contadorResultados.textContent = `${pacientesUnicos.length} resultados`;
+    renderTabla(pacientesUnicos);
 }
 
-
-// --- RENDERIZAR TABLA ---
 function renderTabla(registros) {
+    const tablaPacientesBody = document.getElementById('tablaPacientesBody');
     if (!tablaPacientesBody) return;
 
     if (!registros || registros.length === 0) {
-        tablaPacientesBody.innerHTML = `
-            <tr>
-                <td colSpan="5" class="px-6 py-8 text-center text-xs text-amber-600">
-                    No se encontraron fichas clínicas asociadas a la búsqueda.
-                </td>
-            </tr>`;
+        tablaPacientesBody.innerHTML = `<tr><td colSpan="5" class="px-6 py-8 text-center text-xs text-amber-600">No se encontraron fichas clínicas asociadas.</td></tr>`;
         return;
     }
 
     let html = '';
     registros.forEach(item => {
-        const fecha = new Date(item.created_at).toLocaleDateString('es-AR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-
+        const fecha = new Date(item.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
         let estadoBadge = '<span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 border border-emerald-200"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>En tratamiento</span>';
-        
+
         if (item.estado_paciente === 'en_seguimiento') {
             estadoBadge = '<span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 border border-slate-300"><span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>En seguimiento</span>';
         } else if (item.estado_paciente === 'egreso') {
@@ -323,15 +333,8 @@ function renderTabla(registros) {
     tablaPacientesBody.innerHTML = html;
 }
 
-
-// --- MOSTRAR HISTORIAL DEL PACIENTE ---
 async function verFichaPaciente(id) {
-    const { data, error } = await supabaseClient
-        .from('historias_clinicas')
-        .select('*')
-        .eq('id', id)
-        .single();
-
+    const { data, error } = await supabaseClient.from('historias_clinicas').select('*').eq('id', id).single();
     if (error || !data) {
         alert('No se pudo cargar la ficha del paciente.');
         return;
@@ -339,9 +342,16 @@ async function verFichaPaciente(id) {
 
     pacienteActual = data;
 
+    const fichaDniHeader = document.getElementById('fichaDniHeader');
+    const fichaNombreHeader = document.getElementById('fichaNombreHeader');
+    const fichaEstadoBadge = document.getElementById('fichaEstadoBadge');
+    const cambioEstadoRapido = document.getElementById('cambioEstadoRapido');
+    const cantDiasFicha = document.getElementById('cantDiasFicha');
+    const detalleFichaPaciente = document.getElementById('detalleFichaPaciente');
+
     if (fichaDniHeader) fichaDniHeader.textContent = `FICHA - DNI ${data.paciente_dni || 'N/R'}`;
     if (fichaNombreHeader) fichaNombreHeader.textContent = `${data.paciente_nombre || ''} ${data.paciente_apellido || ''}`;
-    
+
     if (fichaEstadoBadge) {
         if (data.estado_paciente === 'en_seguimiento') {
             fichaEstadoBadge.innerHTML = '<span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 border border-slate-300"><span class="h-2 w-2 rounded-full bg-slate-400"></span>En seguimiento</span>';
@@ -367,83 +377,81 @@ async function verFichaPaciente(id) {
     }
 }
 
-
-// --- CREACIÓN DINÁMICA DEL BOTÓN "VER / EDITAR FICHA" ---
 function asegurarBotonEditarFicha() {
+    const btnNuevaEntrada = document.getElementById('btnNuevaEntrada');
     if (!btnNuevaEntrada) return;
-    
+
     let btnVerFicha = document.getElementById('btnVerFichaCompleta');
     if (!btnVerFicha) {
         btnVerFicha = document.createElement('button');
         btnVerFicha.id = 'btnVerFichaCompleta';
         btnVerFicha.className = 'text-xs font-bold text-sky-700 bg-sky-50 border border-sky-200 px-3 py-1.5 rounded-lg hover:bg-sky-100 transition mr-2';
         btnVerFicha.textContent = 'Ver / Editar Ficha';
-        
-        btnNuevaEntrada.parentNode.insertBefore(btnVerFicha, btnNuevaEntrada);
 
+        btnNuevaEntrada.parentNode.insertBefore(btnVerFicha, btnNuevaEntrada);
         btnVerFicha.addEventListener('click', cargarFichaParaEditar);
     }
 }
 
-
-// --- ABRIR Y PRECARGAR FORMULARIO COMPLETO DEL PACIENTE ---
 function cargarFichaParaEditar() {
     if (!pacienteActual) {
         alert('No hay un paciente seleccionado.');
         return;
     }
 
+    const dashboardSection = document.getElementById('dashboardSection');
+    const formularioSection = document.getElementById('formularioSection');
+    const clinicalStatus = document.getElementById('clinicalStatus');
+
     if (dashboardSection) dashboardSection.classList.add('hidden');
     if (formularioSection) formularioSection.classList.remove('hidden');
     if (clinicalStatus) clinicalStatus.classList.add('hidden');
 
-    const setValor = (id, val) => {
+    const setVal = (id, val) => {
         const el = document.getElementById(id);
         if (el) el.value = val || '';
     };
 
-    setValor('pacienteDni', pacienteActual.paciente_dni);
-    setValor('pacienteNombre', pacienteActual.paciente_nombre);
-    setValor('pacienteApellido', pacienteActual.paciente_apellido);
-    setValor('estadoPaciente', pacienteActual.estado_paciente || 'en_tratamiento');
-    setValor('sexo', pacienteActual.sexo);
-    setValor('fechaNacimiento', pacienteActual.fecha_nacimiento);
-    setValor('edad', pacienteActual.edad);
-    setValor('grupoEtario', pacienteActual.grupo_etario);
-    setValor('localidad', pacienteActual.localidad);
-    setValor('barrioResidencia', pacienteActual.barrio_residencia);
-    setValor('nivelEducativo', pacienteActual.nivel_educativo);
-    setValor('situacionLaboral', pacienteActual.situacion_laboral);
-    setValor('tipoVivienda', pacienteActual.tipo_vivienda);
-    setValor('situacionHabitacional', pacienteActual.situacion_habitacional);
-    setValor('habitacionesDormir', pacienteActual.habitaciones_dormir);
-    setValor('personasVivienda', pacienteActual.personas_vivienda);
-    setValor('servicioAgua', pacienteActual.servicio_agua);
-    setValor('eliminacionExcretas', pacienteActual.eliminacion_excretas);
+    setVal('pacienteDni', pacienteActual.paciente_dni);
+    setVal('pacienteNombre', pacienteActual.paciente_nombre);
+    setVal('pacienteApellido', pacienteActual.paciente_apellido);
+    setVal('estadoPaciente', pacienteActual.estado_paciente || 'en_tratamiento');
+    setVal('sexo', pacienteActual.sexo);
+    setVal('fechaNacimiento', pacienteActual.fecha_nacimiento);
+    setVal('edad', pacienteActual.edad);
+    setVal('grupoEtario', pacienteActual.grupo_etario);
+    setVal('localidad', pacienteActual.localidad);
+    setVal('barrioResidencia', pacienteActual.barrio_residencia);
+    setVal('nivelEducativo', pacienteActual.nivel_educativo);
+    setVal('situacionLaboral', pacienteActual.situacion_laboral);
+    setVal('tipoVivienda', pacienteActual.tipo_vivienda);
+    setVal('situacionHabitacional', pacienteActual.situacion_habitacional);
+    setVal('habitacionesDormir', pacienteActual.habitaciones_dormir);
+    setVal('personasVivienda', pacienteActual.personas_vivienda);
+    setVal('servicioAgua', pacienteActual.servicio_agua);
+    setVal('eliminacionExcretas', pacienteActual.eliminacion_excretas);
 
-    setValor('sustanciaConsumida', pacienteActual.sustancia_consumida);
-    setValor('edadInicio', pacienteActual.edad_inicio);
-    setValor('frecuenciaUso', pacienteActual.frecuencia_uso);
-    setValor('policonsumo', pacienteActual.policonsumo);
+    setVal('sustanciaConsumida', pacienteActual.sustancia_consumida);
+    setVal('edadInicio', pacienteActual.edad_inicio);
+    setVal('frecuenciaUso', pacienteActual.frecuencia_uso);
+    setVal('policonsumo', pacienteActual.policonsumo);
 
-    setValor('lugarConsumo', pacienteActual.lugar_consumo);
-    setValor('redAcompanamiento', pacienteActual.red_acompanamiento);
-    setValor('motivos', pacienteActual.motivos);
-    setValor('pautasAutocuidado', pacienteActual.pautas_autocuidado);
+    setVal('lugarConsumo', pacienteActual.lugar_consumo);
+    setVal('redAcompanamiento', pacienteActual.red_acompanamiento);
+    setVal('motivos', pacienteActual.motivos);
+    setVal('pautasAutocuidado', pacienteActual.pautas_autocuidado);
 
-    setValor('consultasPrevias', pacienteActual.consultas_previas);
-    setValor('atencionGuardia', pacienteActual.atencion_guardia);
-    setValor('atencionSaludMental', pacienteActual.atencion_salud_mental);
-    setValor('internaciones', pacienteActual.internaciones);
-    setValor('vinculacionRed', pacienteActual.vinculacion_red);
-    setValor('motivoConsulta', pacienteActual.motivo_consulta);
-    setValor('observaciones', pacienteActual.observaciones);
+    setVal('consultasPrevias', pacienteActual.consultas_previas);
+    setVal('atencionGuardia', pacienteActual.atencion_guardia);
+    setVal('atencionSaludMental', pacienteActual.atencion_salud_mental);
+    setVal('internaciones', pacienteActual.internaciones);
+    setVal('vinculacionRed', pacienteActual.vinculacion_red);
+    setVal('motivoConsulta', pacienteActual.motivo_consulta);
+    setVal('observaciones', pacienteActual.observaciones);
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-
-// --- TIMELINE Y ENTRADAS DEL PACIENTE ---
 function cargarEvolucionesTimeline(paciente) {
     let entradas = paciente.evoluciones_json;
 
@@ -489,239 +497,193 @@ function cargarEvolucionesTimeline(paciente) {
         `;
     });
 
+    const cantIngresosFicha = document.getElementById('cantIngresosFicha');
+    const cantEvolucionesFicha = document.getElementById('cantEvolucionesFicha');
+    const timelineContenedor = document.getElementById('timelineContenedor');
+
     if (cantIngresosFicha) cantIngresosFicha.textContent = totalIngresos;
     if (cantEvolucionesFicha) cantEvolucionesFicha.textContent = totalEvoluciones;
     if (timelineContenedor) timelineContenedor.innerHTML = timelineHTML;
 }
 
+async function guardarNuevaEntrada() {
+    const motivoEntrada = document.getElementById('motivoEntrada');
+    const tipoEntrada = document.getElementById('tipoEntrada');
+    const dispositivoEntrada = document.getElementById('dispositivoEntrada');
+    const profesionalEntrada = document.getElementById('profesionalEntrada');
+    const formNuevaEntrada = document.getElementById('formNuevaEntrada');
 
-// --- AGREGAR NUEVA ENTRADA A LA FICHA ---
-if (btnNuevaEntrada) {
-    btnNuevaEntrada.addEventListener('click', async () => {
-        if (formNuevaEntrada) formNuevaEntrada.classList.remove('hidden');
-        
-        try {
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            if (user && profesionalEntrada) {
-                profesionalEntrada.value = obtenerNombreProfesional(user);
-            }
-        } catch (e) {
-            console.error("Error al obtener usuario:", e);
-        }
-    });
-}
+    const motivo = motivoEntrada ? motivoEntrada.value.trim() : '';
+    if (!motivo) {
+        alert('Por favor complete la descripción de la entrada.');
+        return;
+    }
 
-if (btnCancelarEntrada) {
-    btnCancelarEntrada.addEventListener('click', () => {
-        if (formNuevaEntrada) formNuevaEntrada.classList.add('hidden');
+    if (!pacienteActual) return;
+
+    let evolucionesPrevias = pacienteActual.evoluciones_json || [{
+        tipo: 'Ingreso',
+        fecha: pacienteActual.created_at,
+        motivo: pacienteActual.motivo_consulta || 'Ingreso inicial registrado.',
+        dispositivo: 'N/I',
+        profesional: 'N/I'
+    }];
+
+    const nuevaEntradaObj = {
+        tipo: tipoEntrada ? tipoEntrada.value : 'Evolución',
+        fecha: new Date().toISOString(),
+        motivo: motivo,
+        dispositivo: dispositivoEntrada ? dispositivoEntrada.value.trim() || 'No especificado' : 'No especificado',
+        profesional: profesionalEntrada ? profesionalEntrada.value.trim() || 'No especificado' : 'No especificado'
+    };
+
+    evolucionesPrevias.push(nuevaEntradaObj);
+
+    const { error } = await supabaseClient.from('historias_clinicas').update({ evoluciones_json: evolucionesPrevias }).eq('id', pacienteActual.id);
+
+    if (error) {
+        alert('Error al guardar entrada: ' + error.message);
+    } else {
+        pacienteActual.evoluciones_json = evolucionesPrevias;
+        cargarEvolucionesTimeline(pacienteActual);
         if (motivoEntrada) motivoEntrada.value = '';
         if (dispositivoEntrada) dispositivoEntrada.value = '';
         if (profesionalEntrada) profesionalEntrada.value = '';
-    });
+        if (formNuevaEntrada) formNuevaEntrada.classList.add('hidden');
+    }
 }
 
-if (btnGuardarEntrada) {
-    btnGuardarEntrada.addEventListener('click', async () => {
-        const motivo = motivoEntrada?.value.trim();
-        if (!motivo) {
-            alert('Por favor complete la descripción de la entrada.');
-            return;
-        }
+async function actualizarEstadoRapido(e) {
+    if (!pacienteActual) return;
 
-        if (!pacienteActual) return;
+    const nuevoEstado = e.target.value;
+    const { error } = await supabaseClient.from('historias_clinicas').update({ estado_paciente: nuevoEstado }).eq('id', pacienteActual.id);
 
-        let evolucionesPrevias = pacienteActual.evoluciones_json || [{
-            tipo: 'Ingreso',
-            fecha: pacienteActual.created_at,
-            motivo: pacienteActual.motivo_consulta || 'Ingreso inicial registrado.',
-            dispositivo: 'N/I',
-            profesional: 'N/I'
-        }];
-
-        const nuevaEntradaObj = {
-            tipo: tipoEntrada?.value || 'Evolución',
-            fecha: new Date().toISOString(),
-            motivo: motivo,
-            dispositivo: dispositivoEntrada?.value.trim() || 'No especificado',
-            profesional: profesionalEntrada?.value.trim() || 'No especificado'
-        };
-
-        evolucionesPrevias.push(nuevaEntradaObj);
-
-        const { error } = await supabaseClient
-            .from('historias_clinicas')
-            .update({ evoluciones_json: evolucionesPrevias })
-            .eq('id', pacienteActual.id);
-
-        if (error) {
-            alert('Error al guardar entrada: ' + error.message);
-        } else {
-            pacienteActual.evoluciones_json = evolucionesPrevias;
-            cargarEvolucionesTimeline(pacienteActual);
-            if (motivoEntrada) motivoEntrada.value = '';
-            if (dispositivoEntrada) dispositivoEntrada.value = '';
-            if (profesionalEntrada) profesionalEntrada.value = '';
-            if (formNuevaEntrada) formNuevaEntrada.classList.add('hidden');
-        }
-    });
+    if (error) {
+        alert('Error al actualizar el estado: ' + error.message);
+    } else {
+        pacienteActual.estado_paciente = nuevoEstado;
+        verFichaPaciente(pacienteActual.id);
+        cargarMetricasGlobales();
+    }
 }
 
+function exportarFichaExcel() {
+    if (!pacienteActual) {
+        alert('No hay ninguna ficha activa para exportar.');
+        return;
+    }
 
-// --- CAMBIAR ESTADO RÁPIDO DESDE LA FICHA ---
-if (cambioEstadoRapido) {
-    cambioEstadoRapido.addEventListener('change', async (e) => {
-        if (!pacienteActual) return;
+    const datosExcel = [
+        { "Campo": "DNI", "Valor": pacienteActual.paciente_dni || '' },
+        { "Campo": "Nombre", "Valor": pacienteActual.paciente_nombre || '' },
+        { "Campo": "Apellido", "Valor": pacienteActual.paciente_apellido || '' },
+        { "Campo": "Estado", "Valor": pacienteActual.estado_paciente || '' },
+        { "Campo": "Sexo", "Valor": pacienteActual.sexo || '' },
+        { "Campo": "Edad", "Valor": pacienteActual.edad || '' },
+        { "Campo": "Grupo Etario", "Valor": pacienteActual.grupo_etario || '' },
+        { "Campo": "Localidad", "Valor": pacienteActual.localidad || '' },
+        { "Campo": "Barrio", "Valor": pacienteActual.barrio_residencia || '' },
+        { "Campo": "Nivel Educativo", "Valor": pacienteActual.nivel_educativo || '' },
+        { "Campo": "Situación Laboral", "Valor": pacienteActual.situacion_laboral || '' },
+        { "Campo": "Sustancia Consumida", "Valor": pacienteActual.sustancia_consumida || '' },
+        { "Campo": "Motivo de Consulta", "Valor": pacienteActual.motivo_consulta || '' },
+        { "Campo": "Observaciones", "Valor": pacienteActual.observaciones || '' },
+        { "Campo": "Fecha de Registro", "Valor": new Date(pacienteActual.created_at).toLocaleString('es-AR') }
+    ];
 
-        const nuevoEstado = e.target.value;
+    const worksheet = XLSX.utils.json_to_sheet(datosExcel);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Ficha Clínica");
 
-        const { error } = await supabaseClient
-            .from('historias_clinicas')
-            .update({ estado_paciente: nuevoEstado })
-            .eq('id', pacienteActual.id);
+    XLSX.writeFile(workbook, `Ficha_${pacienteActual.paciente_dni || 'Paciente'}.xlsx`);
+}
 
-        if (error) {
-            alert('Error al actualizar el estado: ' + error.message);
-        } else {
-            pacienteActual.estado_paciente = nuevoEstado;
-            verFichaPaciente(pacienteActual.id);
+async function guardarHistoriaClinica(e) {
+    e.preventDefault();
+    const clinicalStatus = document.getElementById('clinicalStatus');
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    if (!user) {
+        alert('Sesión expirada. Por favor inicie sesión nuevamente.');
+        mostrarLogin();
+        return;
+    }
+
+    const getVal = (id) => document.getElementById(id)?.value || null;
+
+    const payload = {
+        medico_id: user.id,
+
+        paciente_dni: getVal('pacienteDni'),
+        paciente_nombre: getVal('pacienteNombre'),
+        paciente_apellido: getVal('pacienteApellido'),
+        estado_paciente: getVal('estadoPaciente') || 'en_tratamiento',
+        sexo: getVal('sexo'),
+        fecha_nacimiento: getVal('fechaNacimiento'),
+        edad: getVal('edad') ? parseInt(getVal('edad')) : null,
+        grupo_etario: getVal('grupoEtario'),
+        localidad: getVal('localidad'),
+        barrio_residencia: getVal('barrioResidencia'),
+        nivel_educativo: getVal('nivelEducativo'),
+        situacion_laboral: getVal('situacionLaboral'),
+        tipo_vivienda: getVal('tipoVivienda'),
+        situacion_habitacional: getVal('situacionHabitacional'),
+        habitaciones_dormir: getVal('habitacionesDormir') ? parseInt(getVal('habitacionesDormir')) : null,
+        personas_vivienda: getVal('personasVivienda') ? parseInt(getVal('personasVivienda')) : null,
+        servicio_agua: getVal('servicioAgua'),
+        eliminacion_excretas: getVal('eliminacionExcretas'),
+
+        sustancia_consumida: getVal('sustanciaConsumida'),
+        edad_inicio: getVal('edadInicio') ? parseInt(getVal('edadInicio')) : null,
+        frecuencia_uso: getVal('frecuenciaUso'),
+        policonsumo: getVal('policonsumo'),
+
+        lugar_consumo: getVal('lugarConsumo'),
+        red_acompanamiento: getVal('redAcompanamiento'),
+        motivos: getVal('motivos'),
+        pautas_autocuidado: getVal('pautasAutocuidado'),
+
+        consultas_previas: getVal('consultasPrevias'),
+        atencion_guardia: getVal('atencionGuardia'),
+        atencion_salud_mental: getVal('atencionSaludMental'),
+        internaciones: getVal('internaciones'),
+        vinculacion_red: getVal('vinculacionRed'),
+        motivo_consulta: getVal('motivoConsulta'),
+        observaciones: getVal('observaciones')
+    };
+
+    let respuesta;
+
+    if (pacienteActual && pacienteActual.id) {
+        respuesta = await supabaseClient.from('historias_clinicas').update(payload).eq('id', pacienteActual.id);
+    } else {
+        respuesta = await supabaseClient.from('historias_clinicas').insert([payload]);
+    }
+
+    if (respuesta.error) {
+        if (clinicalStatus) {
+            clinicalStatus.textContent = 'Error al guardar: ' + respuesta.error.message;
+            clinicalStatus.className = 'text-sm mt-3 text-center text-red-500 font-semibold block';
+            clinicalStatus.classList.remove('hidden');
+        }
+    } else {
+        if (clinicalStatus) {
+            clinicalStatus.textContent = pacienteActual ? '¡Ficha actualizada con éxito!' : '¡Historia clínica guardada con éxito!';
+            clinicalStatus.className = 'text-sm mt-3 text-center text-emerald-600 font-bold block';
+            clinicalStatus.classList.remove('hidden');
+        }
+
+        const clinicalForm = document.getElementById('clinicalForm');
+        if (clinicalForm) clinicalForm.reset();
+
+        setTimeout(() => {
+            const formularioSection = document.getElementById('formularioSection');
+            const dashboardSection = document.getElementById('dashboardSection');
+            if (formularioSection) formularioSection.classList.add('hidden');
+            if (dashboardSection) dashboardSection.classList.remove('hidden');
+            limpiarVistaInicial();
             cargarMetricasGlobales();
-        }
-    });
-}
-
-
-// --- EXPORTAR FICHA INDIVIDUAL A EXCEL ---
-if (btnExportarExcel) {
-    btnExportarExcel.addEventListener('click', () => {
-        if (!pacienteActual) {
-            alert('No hay ninguna ficha activa para exportar.');
-            return;
-        }
-
-        if (typeof XLSX === 'undefined') {
-            alert('La librería XLSX no está cargada.');
-            return;
-        }
-
-        const datosExcel = [
-            { "Campo": "DNI", "Valor": pacienteActual.paciente_dni || '' },
-            { "Campo": "Nombre", "Valor": pacienteActual.paciente_nombre || '' },
-            { "Campo": "Apellido", "Valor": pacienteActual.paciente_apellido || '' },
-            { "Campo": "Estado", "Valor": pacienteActual.estado_paciente || '' },
-            { "Campo": "Sexo", "Valor": pacienteActual.sexo || '' },
-            { "Campo": "Edad", "Valor": pacienteActual.edad || '' },
-            { "Campo": "Grupo Etario", "Valor": pacienteActual.grupo_etario || '' },
-            { "Campo": "Localidad", "Valor": pacienteActual.localidad || '' },
-            { "Campo": "Barrio", "Valor": pacienteActual.barrio_residencia || '' },
-            { "Campo": "Nivel Educativo", "Valor": pacienteActual.nivel_educativo || '' },
-            { "Campo": "Situación Laboral", "Valor": pacienteActual.situacion_laboral || '' },
-            { "Campo": "Sustancia Consumida", "Valor": pacienteActual.sustancia_consumida || '' },
-            { "Campo": "Motivo de Consulta", "Valor": pacienteActual.motivo_consulta || '' },
-            { "Campo": "Observaciones", "Valor": pacienteActual.observaciones || '' },
-            { "Campo": "Fecha de Registro", "Valor": new Date(pacienteActual.created_at).toLocaleString('es-AR') }
-        ];
-
-        const worksheet = XLSX.utils.json_to_sheet(datosExcel);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Ficha Clínica");
-
-        XLSX.writeFile(workbook, `Ficha_${pacienteActual.paciente_dni || 'Paciente'}.xlsx`);
-    });
-}
-
-
-// --- GUARDAR O ACTUALIZAR HISTORIA CLÍNICA COMPLETA ---
-if (clinicalForm) {
-    clinicalForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (clinicalStatus) clinicalStatus.classList.add('hidden');
-
-        const { data: { user } } = await supabaseClient.auth.getUser();
-
-        if (!user) {
-            alert('Sesión expirada. Por favor inicie sesión nuevamente.');
-            location.reload();
-            return;
-        }
-
-        const getVal = (id) => document.getElementById(id)?.value || null;
-        const getIntVal = (id) => {
-            const val = document.getElementById(id)?.value;
-            return val ? parseInt(val) : null;
-        };
-
-        const payload = {
-            medico_id: user.id,
-
-            paciente_dni: getVal('pacienteDni'),
-            paciente_nombre: getVal('pacienteNombre'),
-            paciente_apellido: getVal('pacienteApellido'),
-            estado_paciente: getVal('estadoPaciente') || 'en_tratamiento',
-            sexo: getVal('sexo'),
-            fecha_nacimiento: getVal('fechaNacimiento'),
-            edad: getIntVal('edad'),
-            grupo_etario: getVal('grupoEtario'),
-            localidad: getVal('localidad'),
-            barrio_residencia: getVal('barrioResidencia'),
-            nivel_educativo: getVal('nivelEducativo'),
-            situacion_laboral: getVal('situacionLaboral'),
-            tipo_vivienda: getVal('tipoVivienda'),
-            situacion_habitacional: getVal('situacionHabitacional'),
-            habitaciones_dormir: getIntVal('habitacionesDormir'),
-            personas_vivienda: getIntVal('personasVivienda'),
-            servicio_agua: getVal('servicioAgua'),
-            eliminacion_excretas: getVal('eliminacionExcretas'),
-
-            sustancia_consumida: getVal('sustanciaConsumida'),
-            edad_inicio: getIntVal('edadInicio'),
-            frecuencia_uso: getVal('frecuenciaUso'),
-            policonsumo: getVal('policonsumo'),
-
-            lugar_consumo: getVal('lugarConsumo'),
-            red_acompanamiento: getVal('redAcompanamiento'),
-            motivos: getVal('motivos'),
-            pautas_autocuidado: getVal('pautasAutocuidado'),
-
-            consultas_previas: getVal('consultasPrevias'),
-            atencion_guardia: getVal('atencionGuardia'),
-            atencion_salud_mental: getVal('atencionSaludMental'),
-            internaciones: getVal('internaciones'),
-            vinculacion_red: getVal('vinculacionRed'),
-            motivo_consulta: getVal('motivoConsulta'),
-            observaciones: getVal('observaciones')
-        };
-
-        let respuesta;
-
-        if (pacienteActual && pacienteActual.id) {
-            respuesta = await supabaseClient
-                .from('historias_clinicas')
-                .update(payload)
-                .eq('id', pacienteActual.id);
-        } else {
-            respuesta = await supabaseClient
-                .from('historias_clinicas')
-                .insert([payload]);
-        }
-
-        if (respuesta.error) {
-            if (clinicalStatus) {
-                clinicalStatus.textContent = 'Error al guardar: ' + respuesta.error.message;
-                clinicalStatus.className = 'text-sm mt-3 text-center text-red-500 font-semibold block';
-            }
-        } else {
-            if (clinicalStatus) {
-                clinicalStatus.textContent = pacienteActual ? '¡Ficha actualizada con éxito!' : '¡Historia clínica guardada con éxito!';
-                clinicalStatus.className = 'text-sm mt-3 text-center text-emerald-600 font-bold block';
-            }
-            clinicalForm.reset();
-
-            setTimeout(() => {
-                if (formularioSection) formularioSection.classList.add('hidden');
-                if (dashboardSection) dashboardSection.classList.remove('hidden');
-                limpiarVistaInicial();
-                cargarMetricasGlobales();
-            }, 1500);
-        }
-    });
+        }, 1500);
+    }
 }
