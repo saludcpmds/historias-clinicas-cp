@@ -1,6 +1,5 @@
 const SUPABASE_URL = 'https://hgibtilxeypuvpraziac.supabase.co';
-// Reemplaza esta clave con la Publishable key completa que copiaste de Supabase
-const SUPABASE_ANON_KEY = 'sb_publishable_yZ6dortEAFQ5ZwZUwwPhGg_i-0cY...';
+const SUPABASE_ANON_KEY = 'sb_publishable_yZ6dortEAFQ5ZwZUwwPhGg_i-OcYDqD';
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
