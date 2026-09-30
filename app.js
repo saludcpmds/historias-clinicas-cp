@@ -346,6 +346,7 @@ function obtenerNombreProfesional(user) {
 
 function limpiarVistaInicial() {
   const tbody = document.getElementById('tablaPacientesBody');
+  const cards = document.getElementById('resultadoCardsMobile');
   const contador = document.getElementById('contadorResultados');
   const detalle = document.getElementById('detalleFichaPaciente');
 
@@ -358,6 +359,11 @@ function limpiarVistaInicial() {
     td.textContent = 'Ingrese un DNI o Nombre en el buscador y presione "Buscar" para ver resultados.';
     tr.appendChild(td);
     tbody.appendChild(tr);
+  }
+
+  if (cards) {
+    cards.innerHTML =
+      '<p class="text-center text-xs text-slate-400 py-6">Ingrese un DNI o nombre y presione Buscar.</p>';
   }
 
   if (contador) contador.textContent = '0 fichas mostradas';
@@ -416,6 +422,11 @@ async function ejecutarBusqueda() {
     td.textContent = 'Buscando registros...';
     tr.appendChild(td);
     tbody.appendChild(tr);
+  }
+  const cardsLoading = document.getElementById('resultadoCardsMobile');
+  if (cardsLoading) {
+    cardsLoading.innerHTML =
+      '<p class="text-center text-xs text-slate-400 py-6">Buscando registros...</p>';
   }
 
   try {
@@ -476,27 +487,32 @@ async function ejecutarBusqueda() {
 
 function renderTablaSegura(registros) {
   const tbody = document.getElementById('tablaPacientesBody');
-  if (!tbody) return;
+  const cards = document.getElementById('resultadoCardsMobile');
 
-  tbody.innerHTML = '';
+  if (tbody) tbody.innerHTML = '';
+  if (cards) cards.innerHTML = '';
 
   if (!registros || registros.length === 0) {
-    const tr = document.createElement('tr');
-    const td = document.createElement('td');
-    td.colSpan = 5;
-    td.className = 'px-6 py-8 text-center text-xs text-amber-600';
-    td.textContent = 'No se encontraron fichas clínicas asociadas.';
-    tr.appendChild(td);
-    tbody.appendChild(tr);
+    if (tbody) {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 5;
+      td.className = 'px-6 py-8 text-center text-xs text-amber-600';
+      td.textContent = 'No se encontraron fichas clínicas asociadas.';
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    }
+    if (cards) {
+      cards.innerHTML =
+        '<p class="text-center text-xs text-amber-600 py-6">No se encontraron fichas clínicas asociadas.</p>';
+    }
     return;
   }
 
   const fragment = document.createDocumentFragment();
+  const cardsFragment = document.createDocumentFragment();
 
   registros.forEach((item) => {
-    const tr = document.createElement('tr');
-    tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
-
     const fecha = item.created_at
       ? new Date(item.created_at).toLocaleDateString('es-AR', {
           day: '2-digit',
@@ -504,39 +520,82 @@ function renderTablaSegura(registros) {
           year: 'numeric'
         })
       : 'N/I';
+    const nombre = `${item.paciente_nombre || ''} ${item.paciente_apellido || ''}`.trim();
+    const dni = item.paciente_dni || 'N/R';
 
-    const tdDni = document.createElement('td');
-    tdDni.className = 'px-6 py-4 font-mono font-bold text-slate-900';
-    tdDni.textContent = item.paciente_dni || 'N/R';
+    // —— Fila de tabla (escritorio) ——
+    if (tbody) {
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
 
-    const tdNombre = document.createElement('td');
-    tdNombre.className = 'px-6 py-4 font-semibold text-slate-800';
-    tdNombre.textContent = `${item.paciente_nombre || ''} ${item.paciente_apellido || ''}`.trim();
+      const tdDni = document.createElement('td');
+      tdDni.className = 'px-4 lg:px-6 py-4 font-mono font-bold text-slate-900';
+      tdDni.textContent = dni;
 
-    const tdFecha = document.createElement('td');
-    tdFecha.className = 'px-6 py-4 font-mono text-xs text-slate-500';
-    tdFecha.textContent = fecha;
+      const tdNombre = document.createElement('td');
+      tdNombre.className = 'px-4 lg:px-6 py-4 font-semibold text-slate-800';
+      tdNombre.textContent = nombre;
 
-    const tdEstado = document.createElement('td');
-    tdEstado.className = 'px-6 py-4';
-    tdEstado.appendChild(crearBadgeEstado(item.estado_paciente));
+      const tdFecha = document.createElement('td');
+      tdFecha.className = 'px-4 lg:px-6 py-4 font-mono text-xs text-slate-500';
+      tdFecha.textContent = fecha;
 
-    const tdAccion = document.createElement('td');
-    tdAccion.className = 'px-6 py-4 text-right';
+      const tdEstado = document.createElement('td');
+      tdEstado.className = 'px-4 lg:px-6 py-4';
+      tdEstado.appendChild(crearBadgeEstado(item.estado_paciente));
 
-    const btnVer = document.createElement('button');
-    btnVer.type = 'button';
-    btnVer.className =
-      'text-xs bg-sky-50 text-sky-700 font-bold px-3 py-1.5 rounded-lg border border-sky-200 hover:bg-sky-100 transition';
-    btnVer.textContent = 'Ver Historial';
-    btnVer.addEventListener('click', () => verFichaPaciente(item.id));
+      const tdAccion = document.createElement('td');
+      tdAccion.className = 'px-4 lg:px-6 py-4 text-right';
+      const btnVer = document.createElement('button');
+      btnVer.type = 'button';
+      btnVer.className =
+        'text-xs bg-sky-50 text-sky-700 font-bold px-3 py-1.5 rounded-lg border border-sky-200 hover:bg-sky-100 transition';
+      btnVer.textContent = 'Ver Historial';
+      btnVer.addEventListener('click', () => verFichaPaciente(item.id));
+      tdAccion.appendChild(btnVer);
 
-    tdAccion.appendChild(btnVer);
-    tr.append(tdDni, tdNombre, tdFecha, tdEstado, tdAccion);
-    fragment.appendChild(tr);
+      tr.append(tdDni, tdNombre, tdFecha, tdEstado, tdAccion);
+      fragment.appendChild(tr);
+    }
+
+    // —— Tarjeta (móvil) ——
+    if (cards) {
+      const card = document.createElement('article');
+      card.className =
+        'rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-2';
+
+      const top = document.createElement('div');
+      top.className = 'flex items-start justify-between gap-2';
+
+      const left = document.createElement('div');
+      const dniEl = document.createElement('p');
+      dniEl.className = 'font-mono text-sm font-bold text-slate-900';
+      dniEl.textContent = dni;
+      const nomEl = document.createElement('p');
+      nomEl.className = 'text-sm font-semibold text-slate-800 mt-0.5';
+      nomEl.textContent = nombre || 'Sin nombre';
+      left.append(dniEl, nomEl);
+
+      top.append(left, crearBadgeEstado(item.estado_paciente));
+
+      const meta = document.createElement('p');
+      meta.className = 'text-xs text-slate-500 font-mono';
+      meta.textContent = `Alta: ${fecha}`;
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className =
+        'w-full mt-1 text-sm bg-sky-600 text-white font-semibold py-2.5 rounded-xl hover:bg-sky-700 transition';
+      btn.textContent = 'Ver historial';
+      btn.addEventListener('click', () => verFichaPaciente(item.id));
+
+      card.append(top, meta, btn);
+      cardsFragment.appendChild(card);
+    }
   });
 
-  tbody.appendChild(fragment);
+  if (tbody) tbody.appendChild(fragment);
+  if (cards) cards.appendChild(cardsFragment);
 }
 
 function crearBadgeEstado(estado) {
