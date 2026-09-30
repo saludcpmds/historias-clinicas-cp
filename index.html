@@ -109,8 +109,8 @@
                 <div class="mt-6 flex flex-col sm:flex-row gap-3">
                     <div class="relative flex-1">
                         <input type="text" id="buscarDNI"
-                               placeholder="Buscar por DNI o nombre — ej. 12345678"
-                               maxlength="100"
+                               placeholder="Buscar por DNI/documento o nombre — ej. 12345678"
+                               maxlength="80"
                                class="w-full rounded-xl border border-slate-200 bg-white py-3 pl-4 pr-4 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition">
                     </div>
                     <button id="btnBuscar" type="button"
@@ -316,8 +316,9 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700" for="pacienteDni">DNI *</label>
-                            <input type="text" id="pacienteDni" required pattern="\d{7,8}" maxlength="8"
+                            <label class="block text-sm font-medium text-gray-700" for="pacienteDni">DNI / Documento *</label>
+                            <input type="text" id="pacienteDni" required pattern="\d{7,11}" maxlength="11"
+                                   inputmode="numeric" title="Entre 7 y 11 dígitos (DNI argentino o documento extranjero)"
                                    placeholder="7 u 8 dígitos" inputmode="numeric"
                                    class="mt-1 block w-full px-3 py-2 border rounded-md">
                         </div>
