@@ -425,7 +425,7 @@ async function ejecutarBusqueda() {
       .order('created_at', { ascending: false })
       .limit(SEARCH_LIMIT);
 
-    if (/^\d{7,8}$/.test(query)) {
+    if (/^\d{7,11}$/.test(query)) {
       consulta = consulta.eq('paciente_dni', query);
     } else {
       consulta = consulta.or(
@@ -1221,9 +1221,9 @@ async function guardarHistoriaClinica(e) {
     observaciones: getVal('observaciones')
   };
 
-  if (payload.paciente_dni && !/^\d{7,8}$/.test(payload.paciente_dni)) {
+  if (payload.paciente_dni && !/^\d{7,11}$/.test(payload.paciente_dni)) {
     if (clinicalStatus) {
-      clinicalStatus.textContent = 'El DNI debe contener 7 u 8 dígitos numéricos.';
+      clinicalStatus.textContent = 'El documento debe contener entre 7 y 11 dígitos numéricos (DNI o documento extranjero).';
       clinicalStatus.className = 'text-sm mt-3 text-center text-red-500 font-semibold block';
       clinicalStatus.classList.remove('hidden');
     }
