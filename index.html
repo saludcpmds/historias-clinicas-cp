@@ -29,6 +29,52 @@
             -ms-user-select: none;
             user-select: none;
         }
+
+        /* —— Mejoras móviles —— */
+        @media (max-width: 640px) {
+            /* Header más compacto */
+            header .banner-decor {
+                display: none !important;
+            }
+            header .header-titles {
+                display: none !important;
+            }
+            #userEmail {
+                max-width: 42vw;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                font-size: 0.7rem;
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+            /* Dashboard */
+            main.dashboard-main {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+            .hero-dashboard {
+                padding: 1.25rem !important;
+                border-radius: 1.25rem !important;
+            }
+            .hero-dashboard h1 {
+                font-size: 1.75rem !important;
+            }
+            /* Tabla: scroll horizontal de respaldo */
+            .tabla-scroll {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            /* Formulario */
+            #formularioSection .form-card {
+                padding: 1.25rem !important;
+            }
+            /* Detalle ficha */
+            #detalleFichaPaciente {
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen font-sans text-slate-800 antialiased">
@@ -64,10 +110,10 @@
         <header class="w-full bg-[#A4C2E8] shadow-sm mb-6 font-['Barlow',sans-serif] ">
             <div class="w-full flex items-center justify-between pr-4 sm:pr-6 h-16 sm:h-20 overflow-hidden">
                 <div class="flex items-center h-full gap-3 sm:gap-5">
-                    <img src="baner-rojo.jpg" alt="Bloque Rojo" class="h-full w-auto object-cover flex-shrink-0">
-                    <img src="banner-amarillo.png" alt="Bloque Amarillo" class="h-full w-auto object-cover flex-shrink-0 -ml-3 sm:-ml-5">
+                    <img src="baner-rojo.jpg" alt="Bloque Rojo" class="banner-decor h-full w-auto object-cover flex-shrink-0">
+                    <img src="banner-amarillo.png" alt="Bloque Amarillo" class="banner-decor h-full w-auto object-cover flex-shrink-0 -ml-3 sm:-ml-5">
                     <img src="escudo-corrientes.png" alt="Escudo Corrientes" class="h-12 sm:h-16 w-auto object-contain flex-shrink-0 ml-1 sm:ml-2">
-                    <div class="flex flex-col justify-center leading-none text-slate-900">
+                    <div class="header-titles flex flex-col justify-center leading-none text-slate-900">
                         <span class="text-xs sm:text-base font-bold tracking-tight">Ministerio de</span>
                         <span class="text-xs sm:text-base font-bold tracking-tight">Desarrollo Social</span>
                         <span class="text-sm sm:text-xl font-black uppercase tracking-wider mt-0.5">CORRIENTES</span>
@@ -93,8 +139,8 @@
             </div>
         </header>
 
-        <main class="mx-auto max-w-7xl px-6 space-y-6">
-            <section class="relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-r from-sky-50/80 via-white to-sky-50/50 p-8 shadow-sm">
+        <main class="dashboard-main mx-auto max-w-7xl px-4 sm:px-6 space-y-4 sm:space-y-6">
+            <section class="hero-dashboard relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-r from-sky-50/80 via-white to-sky-50/50 p-8 shadow-sm">
                 <div class="flex flex-wrap items-end justify-between gap-6">
                     <div>
                         <p class="font-mono text-xs uppercase tracking-widest text-sky-700 font-semibold">REGISTRO ÚNICO POR DNI</p>
@@ -107,19 +153,19 @@
                     </div>
                 </div>
 
-                <div class="mt-6 flex flex-col sm:flex-row gap-3">
+                <div class="mt-6 flex flex-col gap-3 sm:flex-row">
                     <div class="relative flex-1">
                         <input type="text" id="buscarDNI"
-                               placeholder="Buscar por DNI/documento o nombre — ej. 12345678"
+                               placeholder="DNI, documento o nombre"
                                maxlength="80"
                                class="w-full rounded-xl border border-slate-200 bg-white py-3 pl-4 pr-4 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition">
                     </div>
                     <button id="btnBuscar" type="button"
-                            class="bg-sky-600 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-sky-700 transition">
+                            class="w-full sm:w-auto bg-sky-600 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-sky-700 transition">
                         Buscar
                     </button>
                     <button id="btnNuevaFicha" type="button"
-                            class="bg-slate-900 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-slate-800 transition">
+                            class="w-full sm:w-auto bg-slate-900 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-slate-800 transition">
                         + Nueva ficha
                     </button>
                 </div>
@@ -179,24 +225,33 @@
                     <span id="contadorResultados" class="font-mono text-xs text-slate-500">0 fichas</span>
                 </div>
                 <div id="resultadoBusqueda">
-                    <table class="w-full text-sm text-left">
-                        <thead class="bg-slate-50 text-xs font-mono uppercase text-slate-500 border-b border-slate-100">
-                            <tr>
-                                <th class="px-6 py-3 font-semibold">DNI</th>
-                                <th class="px-6 py-3 font-semibold">Nombre</th>
-                                <th class="px-6 py-3 font-semibold">Alta</th>
-                                <th class="px-6 py-3 font-semibold">Estado</th>
-                                <th class="px-6 py-3 font-semibold text-right">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaPacientesBody" class="divide-y divide-slate-100 text-slate-700">
-                            <tr>
-                                <td colspan="5" class="px-6 py-8 text-center text-xs text-slate-400">
-                                    Ingrese un DNI o Nombre en el buscador y presione "Buscar" para ver resultados.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <!-- Vista móvil: tarjetas -->
+                    <div id="resultadoCardsMobile" class="sm:hidden space-y-3 p-4">
+                        <p class="text-center text-xs text-slate-400 py-6">
+                            Ingrese un DNI o nombre y presione Buscar.
+                        </p>
+                    </div>
+                    <!-- Vista escritorio: tabla -->
+                    <div class="hidden sm:block tabla-scroll">
+                        <table class="w-full text-sm text-left min-w-[560px]">
+                            <thead class="bg-slate-50 text-xs font-mono uppercase text-slate-500 border-b border-slate-100">
+                                <tr>
+                                    <th class="px-4 lg:px-6 py-3 font-semibold">DNI</th>
+                                    <th class="px-4 lg:px-6 py-3 font-semibold">Nombre</th>
+                                    <th class="px-4 lg:px-6 py-3 font-semibold">Alta</th>
+                                    <th class="px-4 lg:px-6 py-3 font-semibold">Estado</th>
+                                    <th class="px-4 lg:px-6 py-3 font-semibold text-right">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaPacientesBody" class="divide-y divide-slate-100 text-slate-700">
+                                <tr>
+                                    <td colspan="5" class="px-6 py-8 text-center text-xs text-slate-400">
+                                        Ingrese un DNI o Nombre en el buscador y presione "Buscar" para ver resultados.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
@@ -297,7 +352,7 @@
 
     <!-- 3. FORMULARIO -->
     <div id="formularioSection" class="hidden min-h-screen py-8 px-4 flex justify-center">
-        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-5xl border-t-4 border-sky-600 space-y-8">
+        <div class="form-card bg-white p-8 rounded-xl shadow-lg w-full max-w-5xl border-t-4 border-sky-600 space-y-8">
             <div class="flex justify-between items-center border-b pb-4">
                 <div>
                     <h2 class="text-xl font-bold text-gray-900">Nueva Historia Clínica y Registro Epidemiológico</h2>
